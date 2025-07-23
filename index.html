@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Welcome</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f4f8;
+            display: flex;
+            height: 100vh;
+            margin: 0;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        h1 {
+            margin-bottom: 40px;
+            color: #333;
+        }
+        .choice-container {
+            display: flex;
+            gap: 40px;
+        }
+        .choice {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            font-size: 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,123,255,0.3);
+            transition: background 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .choice:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome! Please select your role:</h1>
+    <div class="choice-container">
+        <a href="/ProjectFolder/signup/signup.html" class="choice">User</a>
+        <a href="/ProjectFolder/adminlogin/adminlogin.html" class="choice">Admin</a>
+
+    </div>
+</body>
+</html>
