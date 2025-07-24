@@ -60,9 +60,9 @@
 </head>
 <body>
     <div class="container">
-        <!-- Login Form -->
-        <div id="loginForm">
-            <h2>User Login</h2>
+        <!-- Signup Form -->
+        <div id="signupForm" style="display:none;">
+            <h2>User Signup</h2>
             <form action="signup.php" method="POST">
                 <input type="text" name="fullname" placeholder="Full Name" required />
                 <input type="email" name="email" placeholder="Email" required />
@@ -70,19 +70,6 @@
                 <button type="submit">Sign Up</button>
             </form>
 
-            <p class="toggle" onclick="showSignup()">Don't have an account? Sign Up</p>
-        </div>
-
-        <!-- Signup Form -->
-        <div id="signupForm" style="display:none;">
-            <h2>User Signup</h2>
-            <form>
-                <input type="text" placeholder="Full Name" required />
-                <input type="email" placeholder="Email" required />
-                <input type="password" placeholder="Password" required />
-                <input type="password" placeholder="Confirm Password" required />
-                <button type="submit">Sign Up</button>
-            </form>
             <p class="toggle" onclick="showLogin()">Already have an account? Login</p>
         </div>
     </div>
