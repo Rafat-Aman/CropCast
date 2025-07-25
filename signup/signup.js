@@ -9,14 +9,16 @@ document.getElementById('signupForm').addEventListener('submit', function(e) {
     })
     .then(response => response.json())
     .then(data => {
+        console.log('Response:', data); // debug
         if (data.success) {
             alert('Signup successful! You can now login.');
-            window.location.href = '../login/login.html'; // redirect on success
+            window.location.href = '../login/login.html';
         } else {
-            alert(data.message); // show error message
+            alert(data.message || 'Something went wrong.');
         }
     })
-    .catch(() => {
-        alert('Something went wrong. Please try again.');
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Something went wrong. Try again later.');
     });
 });
