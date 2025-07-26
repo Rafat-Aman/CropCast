@@ -1,33 +1,47 @@
 document.addEventListener("DOMContentLoaded", () => {
-    fetch("agrodata.php?lat=23.81&lon=90.41") // Dhaka coords
+    // Weather
+    fetch("dashboard.php")
         .then((res) => res.json())
         .then((data) => {
             const weather = document.getElementById("weatherData");
-            if (data && data.main) {
-                weather.innerText = `${data.weather[0].description}, ${data.main.temp}°K`;
+            if (data.success) {
+                weather.innerText = `${data.temp}°C, ${data.condition}`;
             } else {
                 weather.innerText = "Weather data unavailable.";
             }
-        })
-        .catch(() => {
-            document.getElementById("weatherData").innerText = "Error loading weather.";
         });
 
+    // Soil
+    fetch("soil.php")
+        .then((res) => res.json())
+        .then((data) => {
+            const soil = document.getElementById("soilData");
+            if (data && data.moisture !== undefined) {
+                const moisture = (data.moisture * 100).toFixed(2);
+                soil.innerText = `Soil Moisture: ${moisture}%\nTemp: ${data.t0}°C\nPH: ${data.ph}`;
+            } else {
+                soil.innerText = "Soil data not available.";
+            }
+        });
+
+    // Map
+    const map = L.map("map").setView([23.8103, 90.4125], 8);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+    }).addTo(map);
+    L.marker([23.8103, 90.4125])
+        .addTo(map)
+        .bindPopup("Your Farm Location")
+        .openPopup();
+
+    // Logout
     document.getElementById("logoutBtn").addEventListener("click", () => {
         window.location.href = "../login/login.html";
     });
 
-    // Initialize Leaflet map
-    const map = L.map('map').setView([23.8103, 90.4125], 8); // Dhaka
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(map);
-
-    // Optional marker
-    L.marker([23.8103, 90.4125])
-        .addTo(map)
-        .bindPopup('Your Farm Location')
-        .openPopup();
-
+    // Profile menu click (for now just alert)
+    document.getElementById("menu-profile").addEventListener("click", () => {
+        alert("Profile page coming soon...");
+        // You can load profile.html here or swap content via JS
+    });
 });
