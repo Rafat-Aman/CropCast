@@ -24,7 +24,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if (password_verify($password, $hashedPassword)) {
             $_SESSION['user_id'] = $id;
             $_SESSION['fullname'] = $fullname;
-            header("Location: ../dashboard.html");
+            header("Location: ../Dashboard/dashboard.html");
             exit;
         } else {
             echo "❌ Incorrect password!";

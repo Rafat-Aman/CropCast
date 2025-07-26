@@ -1,47 +1,55 @@
-
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>CropCast Dashboard</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="dashboard.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
 </head>
+
 <body>
-    <header>
-        <h1>Welcome, <?php echo htmlspecialchars($fullname); ?>!</h1>
-        <a href="../logout.php" class="logout-btn">Logout</a>
-    </header>
+    <div class="dashboard-container">
+        <header>
+            <h1>🌾 CropCast Dashboard</h1>
+            <button id="logoutBtn">Logout</button>
+        </header>
 
-    <main>
-        <section class="dashboard-section" id="weather">
-            <h2>Weather Forecast</h2>
-            <div id="weather-data">Loading...</div>
+        <section class="cards">
+            <div class="card" id="weatherCard">
+                <h2>Weather Forecast</h2>
+                <p id="weatherData">Loading...</p>
+            </div>
+            <div class="card">
+                <h2>Suggested Crops</h2>
+                <ul>
+                    <li>Tomato</li>
+                    <li>Maize</li>
+                    <li>Rice (IRRI)</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h2>Market Demand</h2>
+                <p>High demand for onions and lentils.</p>
+            </div>
         </section>
+    </div>
+    <div class="card" id="weatherCard">
+        <h2>Weather Forecast</h2>
+        <p id="weatherData">Loading weather data from Agro API...</p>
+    </div>
 
-        <section class="dashboard-section">
-            <h2>Recommended Crops</h2>
-            <ul>
-                <?php
-                $query = "SELECT crop_name FROM crop_recommendations ORDER BY score DESC LIMIT 3";
-                $result = mysqli_query($conn, $query);
-                while ($row = mysqli_fetch_assoc($result)) {
-                    echo "<li>" . htmlspecialchars($row['crop_name']) . "</li>";
-                }
-                ?>
-            </ul>
-        </section>
+    <div class="card">
+        <h2>Farm Map</h2>
+        <div id="map" style="height: 300px;"></div>
+    </div>
 
-        <section class="dashboard-section">
-            <h2>Market Trends</h2>
-            <p>Rice demand increasing by 12%. Maize prices stable. (Static demo)</p>
-        </section>
 
-        <section class="dashboard-section" id="alerts">
-            <h2>Weather Alerts</h2>
-            <div>No extreme conditions detected.</div>
-        </section>
-    </main>
 
-    <script src="script.js"></script>
+    <script src="dashboard.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 </body>
+
 </html>

@@ -1,18 +1,16 @@
 <?php
-session_start();
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login/index.php');
-    exit();
-}
+header('Content-Type: application/json');
 
-include '../main.php'; // DB connection file
+// TODO: You can enable this for real session use
+// session_start();
+// if (!isset($_SESSION['user_id'])) {
+//     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+//     exit;
+// }
 
-$user_id = $_SESSION['user_id'];
-$user_query = $conn->prepare("SELECT fullname FROM users WHERE id = ?");
-$user_query->bind_param("i", $user_id);
-$user_query->execute();
-$user_query->bind_result($fullname);
-$user_query->fetch();
-$user_query->close();
-?>
-
+// Simulated weather data (replace with real API later)
+echo json_encode([
+    'success' => true,
+    'temp' => 32,
+    'condition' => 'Sunny with light breeze'
+]);
