@@ -1,5 +1,3 @@
 # Ignore secrets
 config.php
 
-console.twilio.com
-smtp.txt
