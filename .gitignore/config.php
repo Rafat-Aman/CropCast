@@ -1,5 +1,0 @@
-<?php
-$AGRO_API_KEY = "888b6037426fd0ff9565e7b7c736e2dd";
-$AGRO_API_KEY = "bb0664ed43c153aa072c760594d775a7";
-$POLY_ID = "5aaa8052cbbbb5000b73ff66";
-?>
