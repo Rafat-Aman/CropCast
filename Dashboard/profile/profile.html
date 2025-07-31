@@ -8,12 +8,28 @@
 <body>
     <div class="profile-container">
         <h2>User Profile</h2>
-        <form id="profileForm" method="POST" action="save_profile.php">
-            <label>Name: <input type="text" name="name" id="name" disabled></label>
-            <label>Email: <input type="email" name="email" id="email" disabled></label>
-            <label>Password: <input type="password" name="password" id="password" disabled></label>
-            <label>Location: <input type="text" name="location" id="location" disabled></label>
-            <label>Age: <input type="number" name="age" id="age" disabled></label>
+        <form id="profileForm" method="POST" action="profile.php" enctype="multipart/form-data">
+            <div class="image-preview">
+                <img id="profilePicPreview" src="default.png" alt="Profile Picture">
+                <input type="file" name="profile_image" accept="image/*" onchange="previewImage(event)">
+            </div>
+
+            <label>Full Name:
+                <input type="text" name="fullname" id="fullname" disabled>
+            </label>
+            <label>Email:
+                <input type="email" name="email" id="email" disabled>
+            </label>
+            <label>Password:
+                <input type="password" name="password" id="password" disabled>
+            </label>
+            <label>Age:
+                <input type="number" name="age" id="age" disabled>
+            </label>
+            <label>Location:
+                <input type="text" name="location" id="location" disabled>
+            </label>
+
             <div class="buttons">
                 <button type="button" id="editBtn">Edit</button>
                 <button type="submit" id="saveBtn" style="display:none;">Save</button>

@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     const editBtn = document.getElementById('editBtn');
     const saveBtn = document.getElementById('saveBtn');
-    const inputs = document.querySelectorAll('#profileForm input');
+    const inputs = document.querySelectorAll('#profileForm input:not([type="file"])');
 
     editBtn.addEventListener('click', () => {
         inputs.forEach(input => input.disabled = false);
@@ -9,3 +9,11 @@ document.addEventListener('DOMContentLoaded', function () {
         saveBtn.style.display = 'inline-block';
     });
 });
+
+function previewImage(event) {
+    const reader = new FileReader();
+    reader.onload = function () {
+        document.getElementById('profilePicPreview').src = reader.result;
+    };
+    reader.readAsDataURL(event.target.files[0]);
+}

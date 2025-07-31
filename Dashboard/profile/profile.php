@@ -1,55 +1,74 @@
 <?php
-// Dummy DB connection - replace with real DB in production
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "dashboard";
+session_start();
+include 'db_connect.php';
 
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check DB connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../login/login.html");
+    exit;
 }
 
-// Simulate session user ID
-$user_id = 1;
+$user_id = $_SESSION['user_id'];
 
+// Handle form submission
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $name     = $_POST['name'];
+    $fullname = $_POST['fullname'];
     $email    = $_POST['email'];
-    $pass     = $_POST['password'];
-    $location = $_POST['location'];
+    $password = $_POST['password'];
     $age      = $_POST['age'];
+    $location = $_POST['location'];
+    $image_path = "";
 
-    $sql = "UPDATE users SET 
-            name='$name',
-            email='$email',
-            password='$pass',
-            location='$location',
-            age=$age 
-            WHERE id=$user_id";
-
-    if ($conn->query($sql) === TRUE) {
-        echo "Profile updated successfully.";
-    } else {
-        echo "Error updating profile: " . $conn->error;
+    if (!empty($_FILES['profile_image']['name'])) {
+        $target_dir = "uploads/";
+        if (!is_dir($target_dir)) mkdir($target_dir);
+        $target_file = $target_dir . basename($_FILES["profile_image"]["name"]);
+        move_uploaded_file($_FILES["profile_image"]["tmp_name"], $target_file);
+        $image_path = $target_file;
     }
+
+    // Update or insert profile
+    $check_sql = "SELECT user_id FROM profile WHERE user_id = $user_id";
+    $result = $conn->query($check_sql);
+
+    if ($result->num_rows > 0) {
+        $sql = "UPDATE profile SET 
+                fullname='$fullname', 
+                age=$age, 
+                location='$location'";
+        if ($image_path) {
+            $sql .= ", profile_image='$image_path'";
+        }
+        $sql .= " WHERE user_id=$user_id";
+    } else {
+        $sql = "INSERT INTO profile (user_id, fullname, age, location, profile_image) 
+                VALUES ($user_id, '$fullname', $age, '$location', '$image_path')";
+    }
+    $conn->query($sql);
+
+    // Update users table
+    $sql = "UPDATE users SET email='$email', password='$password' WHERE ID=$user_id";
+    $conn->query($sql);
 }
 
-// Pre-fill form
-$sql = "SELECT name, email, password, location, age FROM users WHERE id=$user_id";
+// Load user info
+$sql = "SELECT u.email, u.password, p.fullname, p.age, p.location, p.profile_image 
+        FROM users u
+        LEFT JOIN profile p ON u.ID = p.user_id
+        WHERE u.ID = $user_id";
+
 $result = $conn->query($sql);
 $user = $result->fetch_assoc();
 
+if ($user):
 echo "<script>
-        document.addEventListener('DOMContentLoaded', function () {
-            document.getElementById('name').value = '{$user['name']}';
-            document.getElementById('email').value = '{$user['email']}';
-            document.getElementById('password').value = '{$user['password']}';
-            document.getElementById('location').value = '{$user['location']}';
-            document.getElementById('age').value = {$user['age']};
-        });
-      </script>";
-$conn->close();
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('fullname').value = '" . addslashes($user['fullname']) . "';
+    document.getElementById('email').value = '" . addslashes($user['email']) . "';
+    document.getElementById('password').value = '" . addslashes($user['password']) . "';
+    document.getElementById('age').value = '" . (int)$user['age'] . "';
+    document.getElementById('location').value = '" . addslashes($user['location']) . "';
+    document.getElementById('profilePicPreview').src = '" . ($user['profile_image'] ?? 'default.png') . "';
+});
+</script>";
+endif;
 ?>

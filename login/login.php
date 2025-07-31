@@ -3,14 +3,12 @@ session_start();
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// include DB connection
-include '../main.php';
+include '../main.php'; // This is your central DB connection
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = $_POST['email'];
     $password = $_POST['password'];
 
-    // Check if user exists
     $stmt = $conn->prepare("SELECT id, fullname, password FROM users WHERE email = ?");
     $stmt->bind_param("s", $email);
     $stmt->execute();
@@ -24,7 +22,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if (password_verify($password, $hashedPassword)) {
             $_SESSION['user_id'] = $id;
             $_SESSION['fullname'] = $fullname;
-            header("Location: ../Dashboard/dashboard.html");
+            header("Location: ../dashboard/profile.html");
             exit;
         } else {
             echo "❌ Incorrect password!";
