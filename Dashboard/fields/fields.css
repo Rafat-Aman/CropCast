@@ -4,7 +4,7 @@ body {
     display: flex;
 }
 
-.dashboard-wrapper {
+.fields-wrapper {
     display: flex;
     width: 100%;
 }
@@ -47,7 +47,7 @@ body {
     background-color: #4e5d6c;
 }
 
-.dashboard-container {
+.fields-container {
     flex-grow: 1;
     padding: 20px;
 }
@@ -56,18 +56,38 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
 }
 
-.cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
-}
-
-.card {
+.field-list {
+    margin-top: 30px;
     background-color: #f2f2f2;
-    padding: 15px;
-    border-radius: 10px;
+    padding: 20px;
+    border-radius: 12px;
+    max-width: 600px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.field-list h2 {
+    margin-bottom: 15px;
+}
+
+.field-list ul {
+    list-style: disc;
+    padding-left: 20px;
+}
+
+#addFieldBtn {
+    margin-top: 20px;
+    padding: 10px 16px;
+    font-size: 1rem;
+    background-color: #388e3c;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+#addFieldBtn:hover {
+    background-color: #2e7030;
 }

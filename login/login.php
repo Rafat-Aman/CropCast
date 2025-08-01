@@ -3,7 +3,7 @@ session_start();
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-include '../main.php'; // This is your central DB connection
+include '../main.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = $_POST['email'];
@@ -22,7 +22,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if (password_verify($password, $hashedPassword)) {
             $_SESSION['user_id'] = $id;
             $_SESSION['fullname'] = $fullname;
-            header("Location: ../dashboard/profile.html");
+            $_SESSION['email'] = $email;
+            header("Location: ../dashboard/dashboard.php");
             exit;
         } else {
             echo "❌ Incorrect password!";

@@ -4,7 +4,7 @@ body {
     display: flex;
 }
 
-.dashboard-wrapper {
+.weather-wrapper {
     display: flex;
     width: 100%;
 }
@@ -47,7 +47,7 @@ body {
     background-color: #4e5d6c;
 }
 
-.dashboard-container {
+.weather-container {
     flex-grow: 1;
     padding: 20px;
 }
@@ -56,18 +56,36 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.weather-section {
+    margin-top: 30px;
+    max-width: 500px;
+    background-color: #f2f2f2;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.location-selector {
     margin-bottom: 20px;
 }
 
-.cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
+label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
 }
 
-.card {
-    background-color: #f2f2f2;
+select {
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    width: 100%;
+}
+
+.weather-data {
+    background-color: #e4f7fe;
     padding: 15px;
-    border-radius: 10px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border-radius: 8px;
 }

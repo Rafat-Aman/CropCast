@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Settings | CropCast</title>
+    <link rel="stylesheet" href="settings.css" />
+</head>
+<body>
+<div class="settings-wrapper">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <h2>🌾 CropCast</h2>
+        <ul>
+            <li><a href="../dashboard.html">📊 Dashboard</a></li>
+            <li><a href="../profile/profile.html">👤 Profile</a></li>
+            <li><a href="../fields/fields.html">🌱 Fields</a></li>
+            <li><a href="../weather/weather.html">☁️ Weather</a></li>
+            <li><a href="../soil/soil.html">🧪 Soil Data</a></li>
+            <li><a href="../reports/reports.html">📄 Reports</a></li>
+            <li><a href="settings.html" class="active">⚙️ Settings</a></li>
+            <li><a href="#" id="logout-link">🚪 Logout</a></li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="settings-container">
+        <header>
+            <h1>⚙️ User Settings</h1>
+            <button id="logoutBtn">Logout</button>
+        </header>
+
+        <section class="settings-section">
+            <form id="settingsForm">
+                <div class="form-group">
+                    <label for="notif">Email Notifications:</label>
+                    <select id="notif">
+                        <option value="on">Enabled</option>
+                        <option value="off">Disabled</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="theme">Theme:</label>
+                    <select id="theme">
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="language">Language:</label>
+                    <select id="language">
+                        <option value="en">English</option>
+                        <option value="bn">বাংলা</option>
+                    </select>
+                </div>
+
+                <button type="submit" id="saveBtn">💾 Save Settings</button>
+            </form>
+        </section>
+    </div>
+</div>
+
+<script src="settings.js"></script>
+</body>
+</html>

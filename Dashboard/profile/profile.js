@@ -1,19 +1,18 @@
-document.addEventListener('DOMContentLoaded', function () {
-    const editBtn = document.getElementById('editBtn');
-    const saveBtn = document.getElementById('saveBtn');
-    const inputs = document.querySelectorAll('#profileForm input:not([type="file"])');
+// Simulate user profile data fetch
+document.addEventListener("DOMContentLoaded", function () {
+    // Normally you would fetch this data from a backend
+    const userProfile = {
+        fullname: "Rafat Aman",
+        email: "rafat@example.com",
+        location: "Dhaka, Bangladesh"
+    };
 
-    editBtn.addEventListener('click', () => {
-        inputs.forEach(input => input.disabled = false);
-        editBtn.style.display = 'none';
-        saveBtn.style.display = 'inline-block';
-    });
+    document.getElementById("fullname").textContent = userProfile.fullname;
+    document.getElementById("email").textContent = userProfile.email;
+    document.getElementById("location").textContent = userProfile.location;
 });
 
-function previewImage(event) {
-    const reader = new FileReader();
-    reader.onload = function () {
-        document.getElementById('profilePicPreview').src = reader.result;
-    };
-    reader.readAsDataURL(event.target.files[0]);
-}
+// Logout button logic
+document.getElementById("logoutBtn").addEventListener("click", function () {
+    window.location.href = "../login.html"; // or trigger actual logout logic
+});

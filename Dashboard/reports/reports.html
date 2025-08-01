@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Reports | CropCast</title>
+    <link rel="stylesheet" href="reports.css" />
+</head>
+<body>
+<div class="reports-wrapper">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <h2>🌾 CropCast</h2>
+        <ul>
+            <li><a href="../dashboard.html">📊 Dashboard</a></li>
+            <li><a href="../profile/profile.html">👤 Profile</a></li>
+            <li><a href="../fields/fields.html">🌱 Fields</a></li>
+            <li><a href="../weather/weather.html">☁️ Weather</a></li>
+            <li><a href="../soil/soil.html">🧪 Soil Data</a></li>
+            <li><a href="reports.html" class="active">📄 Reports</a></li>
+            <li><a href="../settings/settings.html">⚙️ Settings</a></li>
+            <li><a href="#" id="logout-link">🚪 Logout</a></li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="reports-container">
+        <header>
+            <h1>📄 Field Reports</h1>
+            <button id="logoutBtn">Logout</button>
+        </header>
+
+        <section class="reports-section">
+            <h2>Recent Reports</h2>
+            <ul id="reportList">
+                <li>Loading reports...</li>
+            </ul>
+            <button id="downloadBtn">📥 Download All Reports (PDF)</button>
+        </section>
+    </div>
+</div>
+
+<script src="reports.js"></script>
+</body>
+</html>

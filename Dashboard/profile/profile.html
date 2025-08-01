@@ -1,42 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>User Profile</title>
-    <link rel="stylesheet" href="profile.css">
+    <meta charset="UTF-8" />
+    <title>Profile | CropCast</title>
+    <link rel="stylesheet" href="profile.css" />
 </head>
 <body>
+<div class="profile-wrapper">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <h2>🌾 CropCast</h2>
+        <ul>
+            <li><a href="../dashboard.html">📊 Dashboard</a></li>
+            <li><a href="profile.html" class="active">👤 Profile</a></li>
+            <li><a href="../fields/fields.html">🌱 Fields</a></li>
+            <li><a href="../weather/weather.html">☁️ Weather</a></li>
+            <li><a href="../soil/soil.html">🧪 Soil Data</a></li>
+            <li><a href="../reports/reports.html">📄 Reports</a></li>
+            <li><a href="../settings/settings.html">⚙️ Settings</a></li>
+            <li><a href="#" id="logout-link">🚪 Logout</a></li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
     <div class="profile-container">
-        <h2>User Profile</h2>
-        <form id="profileForm" method="POST" action="profile.php" enctype="multipart/form-data">
-            <div class="image-preview">
-                <img id="profilePicPreview" src="default.png" alt="Profile Picture">
-                <input type="file" name="profile_image" accept="image/*" onchange="previewImage(event)">
-            </div>
+        <header>
+            <h1>👤 Your Profile</h1>
+            <button id="logoutBtn">Logout</button>
+        </header>
 
-            <label>Full Name:
-                <input type="text" name="fullname" id="fullname" disabled>
-            </label>
-            <label>Email:
-                <input type="email" name="email" id="email" disabled>
-            </label>
-            <label>Password:
-                <input type="password" name="password" id="password" disabled>
-            </label>
-            <label>Age:
-                <input type="number" name="age" id="age" disabled>
-            </label>
-            <label>Location:
-                <input type="text" name="location" id="location" disabled>
-            </label>
-
-            <div class="buttons">
-                <button type="button" id="editBtn">Edit</button>
-                <button type="submit" id="saveBtn" style="display:none;">Save</button>
+        <section class="profile-info">
+            <div class="info-item">
+                <label>Full Name:</label>
+                <span id="fullname">Loading...</span>
             </div>
-        </form>
+            <div class="info-item">
+                <label>Email:</label>
+                <span id="email">Loading...</span>
+            </div>
+            <div class="info-item">
+                <label>Location:</label>
+                <span id="location">Loading...</span>
+            </div>
+            <button id="editProfileBtn">Edit Profile</button>
+        </section>
     </div>
+</div>
 
-    <script src="profile.js"></script>
+<script src="profile.js"></script>
 </body>
 </html>
