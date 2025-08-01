@@ -1,74 +1,85 @@
 <?php
 session_start();
-include 'db_connect.php';
+header('Content-Type: application/json');
+include '../main.php';
 
+// Guard: must be logged in
 if (!isset($_SESSION['user_id'])) {
-    header("Location: ../login/login.html");
-    exit;
+  http_response_code(401);
+  echo json_encode(['success'=>false,'message'=>'Unauthorized']);
+  exit;
+}
+$userID = (int)$_SESSION['user_id'];
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+  // Fetch both USERS.name and FARMER.* fields
+  $stmt = $conn->prepare("
+    SELECT U.name,
+           F.address_line1,
+           F.address_line2,
+           F.city,
+           F.state,
+           F.postal_code,
+           F.country,
+           F.phone,
+           F.date_of_birth,
+           F.gender,
+           F.farm_name,
+           F.farm_size,
+           F.years_experience
+      FROM FARMER F
+      JOIN USERS U ON F.userID = U.userID
+     WHERE F.userID = ?
+  ");
+  $stmt->bind_param('i', $userID);
+  $stmt->execute();
+  $data = $stmt->get_result()->fetch_assoc() ?: [];
+  echo json_encode($data);
+  exit;
 }
 
-$user_id = $_SESSION['user_id'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  // Allowed fields in FARMER
+  $fields = [
+    'address_line1','address_line2','city','state',
+    'postal_code','country','phone','date_of_birth',
+    'gender','farm_name','farm_size','years_experience'
+  ];
 
-// Handle form submission
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $fullname = $_POST['fullname'];
-    $email    = $_POST['email'];
-    $password = $_POST['password'];
-    $age      = $_POST['age'];
-    $location = $_POST['location'];
-    $image_path = "";
-
-    if (!empty($_FILES['profile_image']['name'])) {
-        $target_dir = "uploads/";
-        if (!is_dir($target_dir)) mkdir($target_dir);
-        $target_file = $target_dir . basename($_FILES["profile_image"]["name"]);
-        move_uploaded_file($_FILES["profile_image"]["tmp_name"], $target_file);
-        $image_path = $target_file;
+  // Build dynamic SET
+  $sets = []; $types = ''; $values = [];
+  foreach ($fields as $f) {
+    if (isset($_POST[$f])) {
+      $sets[]   = "F.`$f` = ?";
+      // farm_size & years_experience are floats
+      $types   .= in_array($f, ['farm_size','years_experience']) ? 'd' : 's';
+      $values[] = $_POST[$f];
     }
+  }
 
-    // Update or insert profile
-    $check_sql = "SELECT user_id FROM profile WHERE user_id = $user_id";
-    $result = $conn->query($check_sql);
+  // Always allow changing USERS.name
+  if (isset($_POST['name'])) {
+    $u = $conn->prepare("UPDATE USERS SET `name` = ? WHERE userID = ?");
+    $u->bind_param('si', $_POST['name'], $userID);
+    $u->execute();
+    $u->close();
+  }
 
-    if ($result->num_rows > 0) {
-        $sql = "UPDATE profile SET 
-                fullname='$fullname', 
-                age=$age, 
-                location='$location'";
-        if ($image_path) {
-            $sql .= ", profile_image='$image_path'";
-        }
-        $sql .= " WHERE user_id=$user_id";
-    } else {
-        $sql = "INSERT INTO profile (user_id, fullname, age, location, profile_image) 
-                VALUES ($user_id, '$fullname', $age, '$location', '$image_path')";
-    }
-    $conn->query($sql);
+  if ($sets) {
+    $sql  = 'UPDATE FARMER F SET '.implode(', ', $sets).' WHERE F.userID = ?';
+    $stmt = $conn->prepare($sql);
+    $types    .= 'i';
+    $values[]  = $userID;
+    $stmt->bind_param($types, ...$values);
+    $stmt->execute();
+    $stmt->close();
+  }
 
-    // Update users table
-    $sql = "UPDATE users SET email='$email', password='$password' WHERE ID=$user_id";
-    $conn->query($sql);
+  echo json_encode(['success'=>true]);
+  exit;
 }
 
-// Load user info
-$sql = "SELECT u.email, u.password, p.fullname, p.age, p.location, p.profile_image 
-        FROM users u
-        LEFT JOIN profile p ON u.ID = p.user_id
-        WHERE u.ID = $user_id";
-
-$result = $conn->query($sql);
-$user = $result->fetch_assoc();
-
-if ($user):
-echo "<script>
-document.addEventListener('DOMContentLoaded', function () {
-    document.getElementById('fullname').value = '" . addslashes($user['fullname']) . "';
-    document.getElementById('email').value = '" . addslashes($user['email']) . "';
-    document.getElementById('password').value = '" . addslashes($user['password']) . "';
-    document.getElementById('age').value = '" . (int)$user['age'] . "';
-    document.getElementById('location').value = '" . addslashes($user['location']) . "';
-    document.getElementById('profilePicPreview').src = '" . ($user['profile_image'] ?? 'default.png') . "';
-});
-</script>";
-endif;
-?>
+// Other methods not allowed
+http_response_code(405);
+echo json_encode(['success'=>false,'message'=>'Method Not Allowed']);
+exit;

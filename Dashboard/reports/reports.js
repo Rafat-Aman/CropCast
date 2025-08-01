@@ -21,6 +21,6 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     document.getElementById("logoutBtn").addEventListener("click", function () {
-        window.location.href = "../login.html";
+        window.location.href = "../login.php";
     });
 });

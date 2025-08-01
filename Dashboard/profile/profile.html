@@ -1,52 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Profile | CropCast</title>
-    <link rel="stylesheet" href="profile.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>My Profile | CropCast</title>
+  <link rel="stylesheet" href="profile.css" />
 </head>
 <body>
-<div class="profile-wrapper">
-    <!-- Sidebar -->
+  <div class="profile-wrapper">
+    <!-- Sidebar (unchanged) -->
     <aside class="sidebar">
-        <h2>🌾 CropCast</h2>
-        <ul>
-            <li><a href="../dashboard.html">📊 Dashboard</a></li>
-            <li><a href="profile.html" class="active">👤 Profile</a></li>
-            <li><a href="../fields/fields.html">🌱 Fields</a></li>
-            <li><a href="../weather/weather.html">☁️ Weather</a></li>
-            <li><a href="../soil/soil.html">🧪 Soil Data</a></li>
-            <li><a href="../reports/reports.html">📄 Reports</a></li>
-            <li><a href="../settings/settings.html">⚙️ Settings</a></li>
-            <li><a href="#" id="logout-link">🚪 Logout</a></li>
-        </ul>
+      <h2>🌾 CropCast</h2>
+      <ul>
+        <li><a href="../dashboard/dashboard.php">📊 Dashboard</a></li>
+        <li><a href="profile.html" class="active">👤 Profile</a></li>
+        <li><a href="../fields/fields.php">🌱 Fields</a></li>
+        <li><a href="../weather/weather.php">☁️ Weather</a></li>
+        <li><a href="../soil/soil.php">🧪 Soil Data</a></li>
+        <li><a href="../reports/reports.php">📄 Reports</a></li>
+        <li><a href="../settings/settings.php">⚙️ Settings</a></li>
+        <li><a href="../../logout.php">🚪 Logout</a></li>
+      </ul>
     </aside>
 
-    <!-- Main Content -->
+    <!-- Profile Content -->
     <div class="profile-container">
-        <header>
-            <h1>👤 Your Profile</h1>
-            <button id="logoutBtn">Logout</button>
-        </header>
+      <header>
+        <h1>My Profile</h1>
+        <button id="editProfileBtn">Edit Profile</button>
+      </header>
 
-        <section class="profile-info">
-            <div class="info-item">
-                <label>Full Name:</label>
-                <span id="fullname">Loading...</span>
-            </div>
-            <div class="info-item">
-                <label>Email:</label>
-                <span id="email">Loading...</span>
-            </div>
-            <div class="info-item">
-                <label>Location:</label>
-                <span id="location">Loading...</span>
-            </div>
-            <button id="editProfileBtn">Edit Profile</button>
-        </section>
+      <form id="profileForm" class="profile-info">
+        <div class="info-item">
+          <label for="name">Name</label>
+          <input type="text" id="name" name="name" disabled>
+        </div>
+        <div class="info-item">
+          <label for="address_line1">Address Line 1</label>
+          <input type="text" id="address_line1" name="address_line1" disabled>
+        </div>
+        <div class="info-item">
+          <label for="address_line2">Address Line 2</label>
+          <input type="text" id="address_line2" name="address_line2" disabled>
+        </div>
+        <div class="info-item">
+          <label for="city">City</label>
+          <input type="text" id="city" name="city" disabled>
+        </div>
+        <div class="info-item">
+          <label for="state">State</label>
+          <input type="text" id="state" name="state" disabled>
+        </div>
+        <div class="info-item">
+          <label for="postal_code">Postal Code</label>
+          <input type="text" id="postal_code" name="postal_code" disabled>
+        </div>
+        <div class="info-item">
+          <label for="country">Country</label>
+          <input type="text" id="country" name="country" disabled>
+        </div>
+        <div class="info-item">
+          <label for="phone">Phone</label>
+          <input type="text" id="phone" name="phone" disabled>
+        </div>
+        <div class="info-item">
+          <label for="date_of_birth">Date of Birth</label>
+          <input type="date" id="date_of_birth" name="date_of_birth" disabled>
+        </div>
+        <div class="info-item">
+          <label for="gender">Gender</label>
+          <select id="gender" name="gender" disabled>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="info-item">
+          <label for="farm_name">Farm Name</label>
+          <input type="text" id="farm_name" name="farm_name" disabled>
+        </div>
+        <div class="info-item">
+          <label for="farm_size">Farm Size</label>
+          <input type="number" step="0.01" id="farm_size" name="farm_size" disabled>
+        </div>
+        <div class="info-item">
+          <label for="years_experience">Years of Experience</label>
+          <input type="number" id="years_experience" name="years_experience" disabled>
+        </div>
+      </form>
     </div>
-</div>
+  </div>
 
-<script src="profile.js"></script>
+  <script src="profile.js"></script>
 </body>
 </html>

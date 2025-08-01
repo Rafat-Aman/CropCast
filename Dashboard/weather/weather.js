@@ -32,6 +32,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Logout logic
     document.getElementById("logoutBtn").addEventListener("click", function () {
-        window.location.href = "../login.html";
+        window.location.href = "../login.php";
     });
 });

@@ -11,7 +11,3 @@ document.addEventListener("DOMContentLoaded", function () {
     }).addTo(map);
 });
 
-// Logout button
-document.getElementById("logoutBtn").addEventListener("click", function () {
-    window.location.href = "login.html"; // Replace with actual logout logic
-});

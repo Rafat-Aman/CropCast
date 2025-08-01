@@ -1,3 +1,11 @@
+<?php
+session_start();
+include '../../main.php';
+if (!isset($_SESSION['user_id'])) {
+  header("Location: ../login/login.html");
+  exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,14 +19,14 @@
     <aside class="sidebar">
         <h2>🌾 CropCast</h2>
         <ul>
-            <li><a href="../dashboard.html">📊 Dashboard</a></li>
+            <li><a href="../dashboard.php">📊 Dashboard</a></li>
             <li><a href="../profile/profile.html">👤 Profile</a></li>
-            <li><a href="../fields/fields.html">🌱 Fields</a></li>
-            <li><a href="../weather/weather.html">☁️ Weather</a></li>
-            <li><a href="soil.html" class="active">🧪 Soil Data</a></li>
-            <li><a href="../reports/reports.html">📄 Reports</a></li>
-            <li><a href="../settings/settings.html">⚙️ Settings</a></li>
-            <li><a href="#" id="logout-link">🚪 Logout</a></li>
+            <li><a href="../fields/fields.php">🌱 Fields</a></li>
+            <li><a href="../weather/weather.php">☁️ Weather</a></li>
+            <li><a href="soil.php" class="active">🧪 Soil Data</a></li>
+            <li><a href="../reports/reports.php">📄 Reports</a></li>
+            <li><a href="../settings/settings.php">⚙️ Settings</a></li>
+            <li><a href="../../logout.php" id="logout-link">🚪 Logout</a></li>
         </ul>
     </aside>
 
@@ -26,7 +34,7 @@
     <div class="soil-container">
         <header>
             <h1>🧪 Soil Conditions</h1>
-            <button id="logoutBtn">Logout</button>
+            
         </header>
 
         <section class="soil-section">
