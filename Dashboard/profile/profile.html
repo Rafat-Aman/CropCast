@@ -19,7 +19,7 @@
         <li><a href="../soil/soil.php">🧪 Soil Data</a></li>
         <li><a href="../reports/reports.php">📄 Reports</a></li>
         <li><a href="../settings/settings.php">⚙️ Settings</a></li>
-        <li><a href="../../logout.php">🚪 Logout</a></li>
+        <li><a href="../../logout.php" id="logout-link">🚪 Logout</a></li>
       </ul>
     </aside>
 
@@ -27,67 +27,63 @@
     <div class="profile-container">
       <header>
         <h1>My Profile</h1>
-        <button id="editProfileBtn">Edit Profile</button>
       </header>
 
-      <form id="profileForm" class="profile-info">
+      <section class="profile-info">
         <div class="info-item">
-          <label for="name">Name</label>
-          <input type="text" id="name" name="name" disabled>
+          <label>Name:</label>
+          <span id="fullname">Loading…</span>
         </div>
         <div class="info-item">
-          <label for="address_line1">Address Line 1</label>
-          <input type="text" id="address_line1" name="address_line1" disabled>
+          <label>Email:</label>
+          <span id="email">Loading…</span>
         </div>
         <div class="info-item">
-          <label for="address_line2">Address Line 2</label>
-          <input type="text" id="address_line2" name="address_line2" disabled>
+          <label>Address:</label>
+          <span id="address1">Loading…</span><br>
+          <span id="address2">Loading…</span>
         </div>
         <div class="info-item">
-          <label for="city">City</label>
-          <input type="text" id="city" name="city" disabled>
+          <label>City:</label>
+          <span id="city">Loading…</span>
         </div>
         <div class="info-item">
-          <label for="state">State</label>
-          <input type="text" id="state" name="state" disabled>
+          <label>State:</label>
+          <span id="state">Loading…</span>
         </div>
         <div class="info-item">
-          <label for="postal_code">Postal Code</label>
-          <input type="text" id="postal_code" name="postal_code" disabled>
+          <label>Postal Code:</label>
+          <span id="postal">Loading…</span>
         </div>
         <div class="info-item">
-          <label for="country">Country</label>
-          <input type="text" id="country" name="country" disabled>
+          <label>Country:</label>
+          <span id="country">Loading…</span>
         </div>
         <div class="info-item">
-          <label for="phone">Phone</label>
-          <input type="text" id="phone" name="phone" disabled>
+          <label>Phone:</label>
+          <span id="phone">Loading…</span>
         </div>
         <div class="info-item">
-          <label for="date_of_birth">Date of Birth</label>
-          <input type="date" id="date_of_birth" name="date_of_birth" disabled>
+          <label>Date of Birth:</label>
+          <span id="dob">Loading…</span>
         </div>
         <div class="info-item">
-          <label for="gender">Gender</label>
-          <select id="gender" name="gender" disabled>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Other">Other</option>
-          </select>
+          <label>Gender:</label>
+          <span id="gender">Loading…</span>
         </div>
         <div class="info-item">
-          <label for="farm_name">Farm Name</label>
-          <input type="text" id="farm_name" name="farm_name" disabled>
+          <label>Farm Name:</label>
+          <span id="farmName">Loading…</span>
         </div>
         <div class="info-item">
-          <label for="farm_size">Farm Size</label>
-          <input type="number" step="0.01" id="farm_size" name="farm_size" disabled>
+          <label>Farm Size:</label>
+          <span id="farmSize">Loading…</span>
         </div>
         <div class="info-item">
-          <label for="years_experience">Years of Experience</label>
-          <input type="number" id="years_experience" name="years_experience" disabled>
+          <label>Experience (yrs):</label>
+          <span id="expYears">Loading…</span>
         </div>
-      </form>
+      </section>
     </div>
   </div>
 
