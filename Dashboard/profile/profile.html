@@ -30,14 +30,27 @@
         <button id="editBtn">Edit</button>
       </header>
 
-      <form id="profileForm" class="profile-info">
-        <!-- Farmer ID -->
+      <form id="profileForm" class="profile-info" enctype="multipart/form-data">
+        <!-- Profile Picture Preview & Upload -->
+        <div class="info-item profile-pic-item">
+          <label for="profile_picture">Profile Picture</label>
+          <img id="profilePicPreview" src="" alt="Profile Picture" />
+          <input
+            type="file"
+            id="profile_picture"
+            name="profile_picture"
+            accept="image/*"
+            disabled
+          />
+        </div>
+
+        <!-- Farmer ID (always read-only) -->
         <div class="info-item">
           <label for="farmerID">Farmer ID</label>
           <input type="text" id="farmerID" name="farmerID" disabled />
         </div>
 
-        <!-- Existing profile fields -->
+        <!-- Other profile fields -->
         <div class="info-item">
           <label for="name">Name</label>
           <input type="text" id="name" name="name" disabled />
