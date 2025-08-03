@@ -1,3 +1,12 @@
+<?php
+// /Dashboard/profile/profile.php
+session_start();
+if (!isset($_SESSION['user_id'])) {
+  // Not logged in → back to global login
+  header('Location: ../../login/login.html');
+  exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,7 +21,7 @@
     <aside class="sidebar">
       <h2>🌾 CropCast</h2>
       <ul>
-        <li><a href="../dashboard/dashboard.php">📊 Dashboard</a></li>
+        <li><a href="../dashboard.php">📊 Dashboard</a></li>
         <li><a href="profile.html" class="active">👤 Profile</a></li>
         <li><a href="../fields/fields.php">🌱 Fields</a></li>
         <li><a href="../weather/weather.php">☁️ Weather</a></li>

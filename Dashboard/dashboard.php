@@ -20,7 +20,7 @@ if (!isset($_SESSION['user_id'])) {
         <h2>🌾 CropCast</h2>
         <ul>
             <li><a href="dashboard.php" id="menu-dashboard" class="active">📊 Dashboard</a></li>
-            <li><a href="profile/profile.html" id="menu-profile">👤 Profile</a></li>
+            <li><a href="profile/profile.php" id="menu-profile">👤 Profile</a></li>
             <li><a href="fields/fields.php" id="menu-fields">🌱 Fields</a></li>
             <li><a href="weather/weather.php" id="menu-weather">☁️ Weather</a></li>
             <li><a href="soil/soil.php" id="menu-soil">🧪 Soil Data</a></li>
