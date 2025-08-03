@@ -1,8 +1,33 @@
 <?php
 session_start();
 if (!isset($_SESSION['user_id'])) {
-  header("Location: login.php");
-  exit;
+    header("Location: login.php");
+    exit;
+}
+
+include '../main.php';
+$userID = (int)$_SESSION['user_id'];
+
+// Fetch name and picture path
+$stmt = $conn->prepare("
+  SELECT U.name,
+         F.profile_picture
+    FROM USERS U
+    JOIN FARMER F ON U.userID = F.userID
+   WHERE U.userID = ?
+");
+$stmt->bind_param('i', $userID);
+$stmt->execute();
+$stmt->bind_result($name, $picPath);
+$stmt->fetch();
+$stmt->close();
+
+// Build the URL to the uploaded picture (or a default)
+if ($picPath) {
+    // assuming uploads live in /Dashboard/profile/uploads/
+    $profilePicUrl = "profile/" . $picPath;
+} else {
+    $profilePicUrl = "images/default-avatar.png"; // put a default here
 }
 ?>
 <!DOCTYPE html>
@@ -34,7 +59,12 @@ if (!isset($_SESSION['user_id'])) {
     <div class="dashboard-container">
         <header>
             <h1>CropCast Dashboard</h1>
-            
+            <div class="user-info">
+                <span>Welcome, <?= htmlspecialchars($name) ?></span>
+                <img src="<?= htmlspecialchars($profilePicUrl) ?>"
+                     alt="Profile Picture"
+                     class="profile-pic" />
+            </div>
         </header>
 
         <div id="main-content">
