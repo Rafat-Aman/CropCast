@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>My Profile | CropCast</title>
   <link rel="stylesheet" href="profile.css" />
 </head>
@@ -27,63 +27,78 @@
     <div class="profile-container">
       <header>
         <h1>My Profile</h1>
+        <button id="editBtn">Edit</button>
       </header>
 
-      <section class="profile-info">
+      <form id="profileForm" class="profile-info">
+        <!-- Farmer ID -->
         <div class="info-item">
-          <label>Name:</label>
-          <span id="fullname">Loading…</span>
+          <label for="farmerID">Farmer ID</label>
+          <input type="text" id="farmerID" name="farmerID" disabled />
+        </div>
+
+        <!-- Existing profile fields -->
+        <div class="info-item">
+          <label for="name">Name</label>
+          <input type="text" id="name" name="name" disabled />
         </div>
         <div class="info-item">
-          <label>Email:</label>
-          <span id="email">Loading…</span>
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" disabled />
         </div>
         <div class="info-item">
-          <label>Address:</label>
-          <span id="address1">Loading…</span><br>
-          <span id="address2">Loading…</span>
+          <label for="address_line1">Address 1</label>
+          <input type="text" id="address_line1" name="address_line1" disabled />
         </div>
         <div class="info-item">
-          <label>City:</label>
-          <span id="city">Loading…</span>
+          <label for="address_line2">Address 2</label>
+          <input type="text" id="address_line2" name="address_line2" disabled />
         </div>
         <div class="info-item">
-          <label>State:</label>
-          <span id="state">Loading…</span>
+          <label for="city">City</label>
+          <input type="text" id="city" name="city" disabled />
         </div>
         <div class="info-item">
-          <label>Postal Code:</label>
-          <span id="postal">Loading…</span>
+          <label for="state">State</label>
+          <input type="text" id="state" name="state" disabled />
         </div>
         <div class="info-item">
-          <label>Country:</label>
-          <span id="country">Loading…</span>
+          <label for="postal_code">Postal Code</label>
+          <input type="text" id="postal_code" name="postal_code" disabled />
         </div>
         <div class="info-item">
-          <label>Phone:</label>
-          <span id="phone">Loading…</span>
+          <label for="country">Country</label>
+          <input type="text" id="country" name="country" disabled />
         </div>
         <div class="info-item">
-          <label>Date of Birth:</label>
-          <span id="dob">Loading…</span>
+          <label for="phone">Phone</label>
+          <input type="text" id="phone" name="phone" disabled />
         </div>
         <div class="info-item">
-          <label>Gender:</label>
-          <span id="gender">Loading…</span>
+          <label for="date_of_birth">Date of Birth</label>
+          <input type="date" id="date_of_birth" name="date_of_birth" disabled />
         </div>
         <div class="info-item">
-          <label>Farm Name:</label>
-          <span id="farmName">Loading…</span>
+          <label for="gender">Gender</label>
+          <select id="gender" name="gender" disabled>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
         </div>
         <div class="info-item">
-          <label>Farm Size:</label>
-          <span id="farmSize">Loading…</span>
+          <label for="farm_name">Farm Name</label>
+          <input type="text" id="farm_name" name="farm_name" disabled />
         </div>
         <div class="info-item">
-          <label>Experience (yrs):</label>
-          <span id="expYears">Loading…</span>
+          <label for="farm_size">Farm Size</label>
+          <input type="number" step="0.01" id="farm_size" name="farm_size" disabled />
         </div>
-      </section>
+        <div class="info-item">
+          <label for="years_experience">Years Experience</label>
+          <input type="number" id="years_experience" name="years_experience" disabled />
+        </div>
+      </form>
     </div>
   </div>
 

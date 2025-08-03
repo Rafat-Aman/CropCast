@@ -1,52 +1,83 @@
 <?php
 session_start();
+header('Content-Type: application/json');
 include '../../main.php';
+
+// Session guard
 if (!isset($_SESSION['user_id'])) {
-  header("Location: ../login/login.html");
-  exit;
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    exit;
 }
-?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <title>Fields | CropCast</title>
-    <link rel="stylesheet" href="fields.css" />
-</head>
-<body>
-<div class="fields-wrapper">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <h2>🌾 CropCast</h2>
-        <ul>
-            <li><a href="../dashboard.php">📊 Dashboard</a></li>
-            <li><a href="../profile/profile.html">👤 Profile</a></li>
-            <li><a href="fields.php" class="active">🌱 Fields</a></li>
-            <li><a href="../weather/weather.php">☁️ Weather</a></li>
-            <li><a href="../soil/soil.php">🧪 Soil Data</a></li>
-            <li><a href="../reports/reports.php">📄 Reports</a></li>
-            <li><a href="../settings/settings.php">⚙️ Settings</a></li>
-            <li><a href="../../logout.php" id="logout-link">🚪 Logout</a></li>
-        </ul>
-    </aside>
 
-    <!-- Main Content -->
-    <div class="fields-container">
-        <header>
-            <h1>🌱 Your Fields</h1>
-            
-        </header>
+$userID = (int)$_SESSION['user_id'];
 
-        <section class="field-list">
-            <h2>Registered Fields</h2>
-            <ul id="fieldData">
-                <li>Loading fields...</li>
-            </ul>
-            <button id="addFieldBtn">+ Add New Field</button>
-        </section>
-    </div>
-</div>
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    $stmt = $conn->prepare(
+        "SELECT F.farmerID,
+                U.name AS name,
+                U.email AS email,
+                F.address_line1,
+                F.address_line2,
+                F.city,
+                F.state,
+                F.postal_code,
+                F.country,
+                F.phone,
+                DATE_FORMAT(F.date_of_birth,'%Y-%m-%d') AS date_of_birth,
+                F.gender,
+                F.farm_name,
+                F.farm_size,
+                F.years_experience
+        FROM FARMER F
+        JOIN USERS U ON F.userID = U.userID
+        WHERE F.userID = ?"
+    );
+    $stmt->bind_param('i', $userID);
+    $stmt->execute();
+    $data = $stmt->get_result()->fetch_assoc() ?: [];
+    echo json_encode($data);
+    exit;
+}
 
-<script src="fields.js"></script>
-</body>
-</html>
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Update USERS (name, email)
+    if (isset($_POST['name'], $_POST['email'])) {
+        $uStmt = $conn->prepare("UPDATE USERS SET name = ?, email = ? WHERE userID = ?");
+        $uStmt->bind_param('ssi', $_POST['name'], $_POST['email'], $userID);
+        $uStmt->execute();
+        $uStmt->close();
+    }
+
+    // Prepare FARMER update
+    $fields = ['address_line1','address_line2','city','state',
+               'postal_code','country','phone','date_of_birth',
+               'gender','farm_name','farm_size','years_experience'];
+    $sets = [];
+    $types = '';
+    $values = [];
+    foreach ($fields as $f) {
+        if (isset($_POST[$f])) {
+            $sets[] = "{$f} = ?";
+            $types .= in_array($f, ['farm_size','years_experience']) ? 'd' : 's';
+            $values[] = $_POST[$f];
+        }
+    }
+    if ($sets) {
+        $sql = 'UPDATE FARMER SET ' . implode(', ', $sets) . ' WHERE userID = ?';
+        $types .= 'i';
+        $values[] = $userID;
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param($types, ...$values);
+        $stmt->execute();
+        $stmt->close();
+    }
+
+    echo json_encode(['success' => true]);
+    exit;
+}
+
+// Method not allowed
+http_response_code(405);
+echo json_encode(['success' => false, 'message' => 'Method Not Allowed']);
+exit;

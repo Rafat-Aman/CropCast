@@ -1,8 +1,10 @@
 /* profile.css */
+
 body {
   margin: 0;
   font-family: Arial, sans-serif;
   display: flex;
+  background: #eef1f5;
 }
 
 .profile-wrapper {
@@ -10,27 +12,114 @@ body {
   width: 100%;
 }
 
-/* Sidebar unchanged from your example */
-.sidebar { /* … */ }
+/* Sidebar styling */
+.sidebar {
+  width: 220px;
+  background-color: #2e3b4e;
+  color: white;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+.sidebar h2 {
+  font-size: 1.6rem;
+  margin-bottom: 1rem;
+  color: #a3d9a5;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar ul li {
+  margin-bottom: 0.75rem;
+}
+
+.sidebar ul li a {
+  color: white;
+  text-decoration: none;
+  display: block;
+  padding: 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.sidebar ul li a:hover,
+.sidebar ul li a.active {
+  background-color: #4e5d6c;
+}
 
 /* Profile container */
 .profile-container {
   flex-grow: 1;
-  padding: 20px;
+  padding: 2rem;
 }
 
 header {
-  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
 }
 
-.profile-info .info-item {
-  margin-bottom: 15px;
+/* Edit button styling */
+#editBtn {
+  padding: 0.5rem 1rem;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
 }
-.profile-info .info-item label {
+
+#editBtn:hover {
+  background-color: #0056b3;
+}
+
+/* Profile information styling */
+.profile-info {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-gap: 1.5rem;
+}
+
+/* Styling for each input block */
+.info-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-item label {
   font-weight: bold;
-  display: inline-block;
-  width: 140px;
+  margin-bottom: 0.5rem;
 }
-.profile-info .info-item span {
-  display: inline-block;
+
+.info-item input,
+.info-item select {
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.info-item input:disabled,
+.info-item select:disabled {
+  background: #e9ecef;
+}
+
+/* Ensure the Farmer ID field is the same as others */
+.info-item input#farmerID {
+  background: #f8f9fa;
+  font-weight: bold;
+}
+
+/* Adjust spacing for smaller screens */
+@media (max-width: 768px) {
+  .profile-info {
+    grid-template-columns: 1fr;
+  }
 }
