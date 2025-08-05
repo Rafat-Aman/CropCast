@@ -35,7 +35,7 @@ document.getElementById('signupForm').addEventListener('submit', async function(
 
     if (json.success) {
       alert('Account created! You can now log in.');
-      window.location.href = '../login/login.html';
+      window.location.href = '../login/login.php';
     } else {
       alert(json.message || 'Signup failed.');
     }
