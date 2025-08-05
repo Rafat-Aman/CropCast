@@ -5,10 +5,11 @@ document.getElementById('signupForm').addEventListener('submit', async function(
   const fullname = document.getElementById('fullname').value.trim();
   const email    = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
+  const role     = document.getElementById('role').value;
 
   // 1) Client-side validation
-  if (!fullname || !email || !password) {
-    return alert('All fields are required.');
+  if (!fullname || !email || !password || !role) {
+    return alert('All fields, including role, are required.');
   }
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
@@ -24,6 +25,7 @@ document.getElementById('signupForm').addEventListener('submit', async function(
     formData.append('fullname', fullname);
     formData.append('email', email);
     formData.append('password', password);
+    formData.append('role', role);
 
     const resp = await fetch('signup.php', {
       method: 'POST',

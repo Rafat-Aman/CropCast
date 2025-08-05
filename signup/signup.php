@@ -15,19 +15,20 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $fullname = trim($_POST['fullname'] ?? '');
 $email    = trim($_POST['email']    ?? '');
 $password = $_POST['password'] ?? '';
+$role     = trim($_POST['role']     ?? '');
 
-if ($fullname === '' || $email === '' || $password === '') {
+if ($fullname === '' || $email === '' || $password === '' || $role === '') {
     echo json_encode(['success'=>false,'message'=>'Please fill all fields.']);
     exit;
 }
 
 // 1) create user
 $stmt = $conn->prepare("
-    INSERT INTO `USERS` (`name`,`email`,`password`)
-    VALUES (?, ?, ?)
+    INSERT INTO `USERS` (`name`,`email`,`password`, `role`)
+    VALUES (?, ?, ?, ?)
 ");
 $hashed = password_hash($password, PASSWORD_DEFAULT);
-$stmt->bind_param("sss", $fullname, $email, $hashed);
+$stmt->bind_param("ssss", $fullname, $email, $hashed, $role); 
 
 if (!$stmt->execute()) {
     echo json_encode([
@@ -36,6 +37,7 @@ if (!$stmt->execute()) {
     ]);
     exit;
 }
+
 
 $userID = $conn->insert_id;
 $stmt->close();

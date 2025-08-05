@@ -1,3 +1,7 @@
 # Ignore secrets
 config.php
 
+vendor/
+composer.lock
+composer.json
+sample.php
