@@ -1,22 +1,66 @@
-.admin-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-  margin: 20px 0;
+/* =============== */
+/* DASH TILE STYLES */
+/* =============== */
+
+.admin-cards{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:16px;
+  margin:16px 0 24px;
 }
-.admin-card {
-  background: #f7f9fc;
-  border-radius: 10px;
-  padding: 16px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+
+.admin-card{
+  display:block;
+  background:#f7f9fc;
+  border-radius:12px;
+  padding:16px 18px;
+  box-shadow:0 2px 6px rgba(0,0,0,.08);
+  text-decoration:none;
+  color:#0f172a;
 }
-.admin-card h3 {
-  margin: 0 0 8px;
-  font-size: 1rem;
-  color: #334155;
+
+.admin-card__title{
+  font-size:.95rem;
+  color:#334155;
+  margin-bottom:6px;
 }
-.admin-card .metric {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #0f172a;
+
+.admin-card__metric{
+  font-size:2rem;
+  font-weight:800;
+  line-height:1;
 }
+
+.admin-card__hint{
+  margin-top:10px;
+  font-size:.85rem;
+  color:#475569;
+  opacity:.85;
+}
+
+/* interaction */
+.admin-card--clickable{
+  transition:transform .15s ease, box-shadow .15s ease, background-color .15s ease, color .15s ease;
+  cursor:pointer;
+}
+.admin-card--clickable:hover{
+  background:#e8f4ff;
+  box-shadow:0 10px 24px rgba(0,0,0,.14);
+  transform:translateY(-2px);
+  color:#0b3b74;
+}
+.admin-card--clickable:active{
+  transform:translateY(0);
+  box-shadow:0 6px 14px rgba(0,0,0,.12);
+}
+
+/* optional color variants for future tiles */
+.admin-card--blue{   background:#eef6ff; }
+.admin-card--green{  background:#ecfdf5; }
+.admin-card--orange{ background:#fff7ed; }
+.admin-card--teal{   background:#f0fdfa; }
+
+.admin-card--clickable:hover.admin-card--blue{   background:#e3f0ff; }
+.admin-card--clickable:hover.admin-card--green{  background:#e6fbf2; }
+.admin-card--clickable:hover.admin-card--orange{ background:#fff0e3; }
+.admin-card--clickable:hover.admin-card--teal{   background:#e6fcf7; }
