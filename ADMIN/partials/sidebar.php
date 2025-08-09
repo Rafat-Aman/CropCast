@@ -8,10 +8,10 @@ if (!defined('ADMIN_BASE_URL')) {
 <aside class="sidebar">
   <h2>🌾 CropCast Admin</h2>
   <ul>
-    <li><a href="<?= ADMIN_BASE_URL ?>/dashboard.php"
+    <li><a href="<?= ADMIN_BASE_URL ?>../dashboard.php"
            class="<?= ($active==='dashboard')?'active':'' ?>">📊 Dashboard</a></li>
 
-    <li><a href="<?= ADMIN_BASE_URL ?>/adminDashboard/users.php"
+    <li><a href="<?= ADMIN_BASE_URL ?>/adminDashboard/users/users.php"
            class="<?= ($active==='users')?'active':'' ?>">👥 Users</a></li>
 
     <!-- Add more admin links here later
