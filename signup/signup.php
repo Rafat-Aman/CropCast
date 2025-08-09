@@ -100,6 +100,15 @@ if (! $stmt->execute()) {
     ]);
     exit;
 }
+// NEW: only insert when role is admin
+if (isset($role) && strtolower($role) === 'admin') {
+    $adminStmt = $conn->prepare("INSERT INTO `maindb`.`admin` (`userID`, `profile_pic_path`) VALUES (?, NULL)");
+    $adminStmt->bind_param('i', $userID);
+    $adminStmt->execute();
+    $adminStmt->close();
+}
+
+
 $stmt->close();
 $conn->close();
 
