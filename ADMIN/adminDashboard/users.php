@@ -1,8 +1,6 @@
 <?php
 session_start();
-if (!isset($_SESSION['user_id'])) {
-  header('Location: ../login/login.html'); // adjust if needed
-  exit;
-}
-include '../../main.php';
-echo"this gets userlist";
+include '../../main.php';                               // from /admin/adminDashboard
+$active = 'users';                                      // highlights Users
+include dirname(__DIR__) . '/partials/sidebar.php';     // goes up to /admin, then /partials
+?>

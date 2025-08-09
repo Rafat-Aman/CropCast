@@ -127,3 +127,6 @@ if (!isset($_SESSION['user_id'])) {
   <script src="profile.js"></script>
 </body>
 </html>
+<!-- 
+need to make a new table FARMS so that farmers table gets shorter
+-->
