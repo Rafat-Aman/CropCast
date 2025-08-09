@@ -80,7 +80,7 @@ $profilePicUrl = $picPath ? "profile/".$picPath : "images/default-avatar.png"; /
       <!-- KPI tiles -->
       <section class="kpi-grid">
         <!-- Total Users tile (clickable) -->
-        <a class="kpi-card grad-pink" href="../users/users.php">
+        <a class="kpi-card grad-pink" href="../admin/adminDashboard/users.php">
           <div class="kpi-icon"><i class="fa-solid fa-user-group"></i></div>
           <div class="kpi-meta">
             <p>Total Users</p>
