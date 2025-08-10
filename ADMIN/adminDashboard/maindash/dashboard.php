@@ -12,7 +12,8 @@ $active = 'dashboard';                 // for sidebar highlight
 $userID = (int)$_SESSION['user_id'];
 
 /** Simple COUNT(*) metric helper */
-function metric(mysqli $conn, string $sql, string $alias = 'c'): int {
+function metric(mysqli $conn, string $sql, string $alias = 'c'): int
+{
   $res = $conn->query($sql);
   return ($res && ($row = $res->fetch_assoc())) ? (int)$row[$alias] : 0;
 }
@@ -54,8 +55,8 @@ $profilePicUrl = $picPath
   <div class="dashboard-wrapper">
     <!-- Sidebar (kept) -->
     <?php
-      // Sidebar (include once, absolute filesystem path)
-      include $_SERVER['DOCUMENT_ROOT'] . '/ProjectFolder/admin/partials/sidebar.php';
+    // Sidebar (include once, absolute filesystem path)
+    include $_SERVER['DOCUMENT_ROOT'] . '/ProjectFolder/admin/partials/sidebar.php';
     ?>
 
     <main class="app">
@@ -93,13 +94,15 @@ $profilePicUrl = $picPath
           </a>
 
           <!-- Add more KPI cards as needed -->
-          <div class="kpi-card grad-green">
-            <div class="kpi-icon"><i class="fa-solid fa-seedling"></i></div>
-            <div class="kpi-meta">
-              <p>Active Farms</p>
-              <h3>128</h3>
+          <a class="kpi-card grad-pink" href="/ProjectFolder/admin/adminDashboard/farms/farms.php">
+            <div class="kpi-card grad-green">
+              <div class="kpi-icon"><i class="fa-solid fa-seedling"></i></div>
+              <div class="kpi-meta">
+                <p>Active Farms</p>
+                <h3>128</h3>
+              </div>
             </div>
-          </div>
+          </a>
           <div class="kpi-card grad-orange">
             <div class="kpi-icon"><i class="fa-regular fa-calendar-days"></i></div>
             <div class="kpi-meta">
