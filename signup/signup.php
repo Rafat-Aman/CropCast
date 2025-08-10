@@ -1,26 +1,26 @@
 <?php
 session_start();
+// Choose ONE response style: JSON or redirect. This example uses JSON:
 header('Content-Type: application/json');
+
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// 0) Include your existing MySQLi connection
-include '../main.php';  // ← adjust path if needed
+require_once __DIR__ . '/../main.php'; // adjust if your signup.php lives elsewhere
 
-// 1) Only POST allowed
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['success' => false, 'message' => 'Method Not Allowed']);
     exit;
 }
 
-// 2) Collect & trim
+// Collect
 $fullname = trim($_POST['fullname'] ?? '');
 $email    = trim($_POST['email']    ?? '');
-$password =      $_POST['password'] ?? '';
-$role     = trim($_POST['role']     ?? '');
+$password =        $_POST['password'] ?? '';
+$role     = strtolower(trim($_POST['role'] ?? ''));
 
-// 3) Basic validation
+// Validate
 if ($fullname === '' || $email === '' || $password === '' || $role === '') {
     echo json_encode(['success' => false, 'message' => 'Please fill all fields.']);
     exit;
@@ -33,85 +33,63 @@ if (strlen($password) < 6) {
     echo json_encode(['success' => false, 'message' => 'Password must be at least 6 characters.']);
     exit;
 }
-$allowed = ['user','admin'];
-if (!in_array($role, $allowed, true)) {
+if (!in_array($role, ['user','admin'], true)) {
     echo json_encode(['success' => false, 'message' => 'Invalid role selected.']);
     exit;
 }
 
-// 4) Hash password
 $hashed = password_hash($password, PASSWORD_DEFAULT);
 
-// ------------------------------------------------------------------
-// 5) INSERT INTO users
-// ------------------------------------------------------------------
-// adjust these to match your actual table + column names
-$tbl_users   = 'users';      // or 'USERS'
-$col_name    = 'name';       // your column for full name
-$col_email   = 'email';
-$col_pass    = 'password';   // if your column is literally named "password"
-$col_role    = 'role';
+// Table names (adjust case to match your schema; MySQL on Windows is case-insensitive)
+$tbl_users  = 'USERS';
+$tbl_farmer = 'FARMER';
+$tbl_admin  = 'ADMIN';
 
-$sql1 = "
-    INSERT INTO `{$tbl_users}` 
-      (`{$col_name}`, `{$col_email}`, `{$col_pass}`, `{$col_role}`)
-    VALUES (?, ?, ?, ?)
-";
-if (! $stmt = $conn->prepare($sql1)) {
-    echo json_encode([
-      'success' => false,
-      'message' => 'Prepare failed (users): ' . $conn->error
-    ]);
-    exit;
-}
-$stmt->bind_param('ssss', $fullname, $email, $hashed, $role);
-if (! $stmt->execute()) {
-    $msg = $conn->errno === 1062
-         ? 'Email already in use.'
-         : 'User insert error: ' . $stmt->error;
-    echo json_encode(['success'=>false,'message'=>$msg]);
-    exit;
-}
-$userID = $conn->insert_id;
-$stmt->close();
+// Start transaction so all-or-nothing
+$conn->begin_transaction();
+try {
+    // Insert USERS
+    $sqlUser = "INSERT INTO `$tbl_users` (`name`,`email`,`password`,`role`) VALUES (?,?,?,?)";
+    $st = $conn->prepare($sqlUser);
+    if (!$st) throw new Exception('Prepare users failed: '.$conn->error);
+    $st->bind_param('ssss', $fullname, $email, $hashed, $role);
+    if (!$st->execute()) {
+        if ($conn->errno === 1062) {
+            throw new Exception('Email already in use.');
+        }
+        throw new Exception('User insert error: '.$st->error);
+    }
+    $userID = $conn->insert_id;
+    $st->close();
 
-// ------------------------------------------------------------------
-// 6) INSERT INTO farmer
-// ------------------------------------------------------------------
-// adjust these to match your actual table + column names
-$tbl_farmer = 'farmer';  // or 'FARMER'
-$sql2 = "
-    INSERT INTO `{$tbl_farmer}` 
-      (`userID`, `regionID`, `phone`)
-    VALUES (?, NULL, '')
-";
-if (! $stmt = $conn->prepare($sql2)) {
-    echo json_encode([
-      'success' => false,
-      'message' => 'Prepare failed (farmer): ' . $conn->error
-    ]);
-    exit;
-}
-$stmt->bind_param('i', $userID);
-if (! $stmt->execute()) {
-    echo json_encode([
-      'success'=>false,
-      'message'=>'Farmer insert error: '.$stmt->error
-    ]);
-    exit;
-}
-// NEW: only insert when role is admin
-if (isset($role) && strtolower($role) === 'admin') {
-    $adminStmt = $conn->prepare("INSERT INTO `maindb`.`admin` (`userID`, `profile_pic_path`) VALUES (?, NULL)");
-    $adminStmt->bind_param('i', $userID);
-    $adminStmt->execute();
-    $adminStmt->close();
-}
+    // Role-specific inserts
+    if ($role === 'user') {
+        // Insert FARMER (minimal placeholder row)
+        $sqlFarmer = "INSERT INTO `$tbl_farmer` (`userID`,`regionID`,`phone`) VALUES (?, NULL, '')";
+        $sf = $conn->prepare($sqlFarmer);
+        if (!$sf) throw new Exception('Prepare farmer failed: '.$conn->error);
+        $sf->bind_param('i', $userID);
+        if (!$sf->execute()) throw new Exception('Farmer insert error: '.$sf->error);
+        $sf->close();
+    } elseif ($role === 'admin') {
+        // Insert ADMIN (adjust columns as your ADMIN table requires)
+        $sqlAdmin = "INSERT INTO `$tbl_admin` (`userID`,`profile_pic_path`) VALUES (?, NULL)";
+        $sa = $conn->prepare($sqlAdmin);
+        if (!$sa) throw new Exception('Prepare admin failed: '.$conn->error);
+        $sa->bind_param('i', $userID);
+        if (!$sa->execute()) throw new Exception('Admin insert error: '.$sa->error);
+        $sa->close();
+    }
 
+    // Commit
+    $conn->commit();
 
-$stmt->close();
-$conn->close();
+     header('Location: ../login/login.php'); exit;
 
-// 7) Success!
-header('Location: ../login/login.php');
-exit;
+} catch (Exception $e) {
+    $conn->rollback();
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+} finally {
+    $conn->close();
+}

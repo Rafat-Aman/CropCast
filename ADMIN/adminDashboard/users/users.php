@@ -1,25 +1,18 @@
 <?php
-// admin/adminDashboard/users.php
+// /ProjectFolder/admin/adminDashboard/users/users.php
 session_start();
-if (!isset($_SESSION['user_id'])) {
-  header('Location: ../login/login.html'); // adjust if needed
-  exit;
-}
-//absolute path
 require_once $_SERVER['DOCUMENT_ROOT'] . '/ProjectFolder/main.php';
 
-$userID = (int)$_SESSION['user_id'];
+if (empty($_SESSION['user_id'])) {
+  header('Location: /ProjectFolder/login/login.html');
+  exit;
+}
 
-// (Optional) admin-only gate
-// if (empty($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') { http_response_code(403); exit('Forbidden'); }
+$active = 'users';          // highlight "Users" in the admin sidebar
 
-$active = 'users'; // highlight "Users" in the admin sidebar
-
-/* URL bases (adjust if your served path differs) */
-if (!defined('ADMIN_BASE_URL'))     define('ADMIN_BASE_URL', '/users/ProjectFolder/admin');
-if (!defined('DASHBOARD_BASE_URL')) define('DASHBOARD_BASE_URL', '/users/ProjectFolder/Dashboard'); // for avatar path
-
-/* CSRF */
+/* -------------------------
+   CSRF
+--------------------------*/
 if (empty($_SESSION['csrf'])) {
   $_SESSION['csrf'] = bin2hex(random_bytes(16));
 }
@@ -29,12 +22,11 @@ $csrf = $_SESSION['csrf'];
    DELETE (POST)
 --------------------------*/
 if (
-  $_SERVER['REQUEST_METHOD'] === 'POST'
-  && isset($_POST['action'], $_POST['csrf'])
-  && $_POST['action'] === 'delete'
-  && hash_equals($_SESSION['csrf'], $_POST['csrf'])
+  $_SERVER['REQUEST_METHOD'] === 'POST' &&
+  isset($_POST['action'], $_POST['csrf']) &&
+  $_POST['action'] === 'delete' &&
+  hash_equals($_SESSION['csrf'], $_POST['csrf'])
 ) {
-
   $deleteId = (int)($_POST['user_id'] ?? 0);
 
   $conn->begin_transaction();
@@ -61,8 +53,8 @@ if (
 /* -------------------------
    SEARCH + PAGINATION (POST)
 --------------------------*/
-$searchBy = $_POST['by']   ?? 'name';        // name|email|role
-$q        = trim($_POST['q'] ?? '');
+$searchBy = $_POST['by']   ?? 'name';   // name|email|role
+$q        = isset($_POST['clear']) ? '' : trim($_POST['q'] ?? '');
 $page     = max(1, (int)($_POST['page'] ?? 1));
 $perPage  = 10;
 $offset   = ($page - 1) * $perPage;
@@ -91,7 +83,7 @@ if ($q !== '') {
   }
 }
 
-/* Count */
+/* Count total */
 $sqlCount = "SELECT COUNT(*) AS c
              FROM USERS U
              LEFT JOIN FARMER F ON F.userID = U.userID
@@ -103,7 +95,7 @@ $totalRows = ($countStmt->get_result()->fetch_assoc()['c']) ?? 0;
 $countStmt->close();
 $totalPages = (int)ceil($totalRows / $perPage);
 
-/* Fetch page */
+/* Fetch page rows */
 $sql = "SELECT
           U.userID, U.name, U.email, U.role,
           F.farmerID, F.profile_picture, F.phone, F.city, F.country
@@ -114,7 +106,7 @@ $sql = "SELECT
         LIMIT ? OFFSET ?";
 $stmt = $conn->prepare($sql);
 if ($types) {
-  $types2 = $types . 'ii';
+  $types2  = $types . 'ii';
   $params2 = array_merge($params, [$perPage, $offset]);
   $stmt->bind_param($types2, ...$params2);
 } else {
@@ -124,11 +116,12 @@ $stmt->execute();
 $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
-/* Avatar URL helper */
+/* Avatar URL helper (absolute) */
 function avatarUrl(?string $relPath): string
 {
-  if (!$relPath) return DASHBOARD_BASE_URL . '/images/default-avatar.png';
-  return DASHBOARD_BASE_URL . '/profile/' . $relPath; // stored like "uploads/xxx.jpg"
+  if (!$relPath) return '/ProjectFolder/Dashboard/images/default-avatar.png';
+  // stored like "uploads/xxx.jpg" under /Dashboard/profile/
+  return '/ProjectFolder/Dashboard/profile/' . $relPath;
 }
 ?>
 <!DOCTYPE html>
@@ -138,22 +131,16 @@ function avatarUrl(?string $relPath): string
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin • Users</title>
-  <link rel="stylesheet" href="../dashboard.css" />
-  <link rel="stylesheet" href="../../dashboard.css">
+
+  <link rel="stylesheet" href="/ProjectFolder/admin/adminDashboard/maindash/dashboard.css" />
+  <link rel="stylesheet" href="/ProjectFolder/admin/adminDashboard/users/users.css" />
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
 
 <body>
   <div class="admin-wrapper">
-
-    <!-- here the sidebar is loading -->
-    <?php
-    include dirname(__DIR__, 2) . '/partials/sidebar.php';
-    // or absolute:
-    // include $_SERVER['DOCUMENT_ROOT'] . '/ProjectFolder/admin/partials/sidebar.php';
-
-    ?>
+    <?php include $_SERVER['DOCUMENT_ROOT'] . '/ProjectFolder/admin/partials/sidebar.php'; ?>
 
     <main class="admin-main">
       <div class="page-head">
@@ -167,17 +154,20 @@ function avatarUrl(?string $relPath): string
             <option value="role" <?= $searchBy === 'role'  ? 'selected' : '' ?>>Role</option>
           </select>
           <input type="text" name="q" value="<?= htmlspecialchars($q) ?>" placeholder="Search…" />
-          <button class="btn btn-primary" type="submit"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+          <button class="btn btn-primary" type="submit">
+            <i class="fa-solid fa-magnifying-glass"></i> Search
+          </button>
           <?php if ($q !== ''): ?>
             <button class="btn btn-muted" type="submit" name="clear" value="1">Clear</button>
           <?php endif; ?>
-          <!-- keep current page at 1 on new search -->
-          <input type="hidden" name="page" value="1">
+          <input type="hidden" name="page" value="1"><!-- reset page on new search -->
         </form>
       </div>
 
       <?php if (!empty($flash)): ?>
-        <div class="flash <?= $flash['type'] === 'ok' ? 'ok' : 'err' ?>"><?= htmlspecialchars($flash['text']) ?></div>
+        <div class="flash <?= $flash['type'] === 'ok' ? 'ok' : 'err' ?>">
+          <?= htmlspecialchars($flash['text']) ?>
+        </div>
       <?php endif; ?>
 
       <div class="table-wrap">
