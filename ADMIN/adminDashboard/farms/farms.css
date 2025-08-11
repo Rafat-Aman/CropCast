@@ -1,0 +1,262 @@
+/* Layout styles for the farms page */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  background: #f3f5f9;
+}
+
+/* Admin Wrapper */
+.admin-wrapper {
+  display: flex;
+  min-height: 100vh;
+}
+
+.admin-main {
+  flex: 1;
+  padding: 24px;
+}
+
+/* Page Header */
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.page-head h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  color: #0f172a;
+}
+
+/* Search Bar */
+.search-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.search-bar select,
+.search-bar input {
+  border: 0;
+  outline: 0;
+}
+
+.search-bar input {
+  min-width: 220px;
+}
+
+.btn {
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: #2563eb;
+  color: #fff;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: #fff;
+}
+
+.btn-muted {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Flash Message */
+.flash {
+  margin-bottom: 12px;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.flash.ok {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.flash.err {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* Table Styles */
+.table-wrap {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  overflow: auto;
+}
+
+.farms-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.farms-table thead th {
+  background: #0f172a;
+  color: #fff;
+  padding: 10px;
+  text-align: left;
+}
+
+.farms-table tbody td {
+  padding: 10px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fff;
+  vertical-align: middle;
+}
+
+.farms-table tbody tr:hover td {
+  background: #f8fafc;
+}
+
+/* Avatar */
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.15);
+}
+
+/* Action Buttons */
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.pagination button {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #0f172a;
+  cursor: pointer;
+}
+
+.pagination button.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+/* Action Buttons inside table */
+.farms-table .actions button {
+  padding: 6px 10px;
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+}
+
+.farms-table .actions .btn-danger {
+  background-color: #ef4444;
+  color: white;
+}
+
+.farms-table .actions .btn-danger:hover {
+  background-color: #dc2626;
+}
+
+/* Miscellaneous Styling */
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.card-head h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.legend {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.dot-green {
+  background-color: #22c55e;
+}
+
+.dot-blue {
+  background-color: #3b82f6;
+}
+
+.side-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  padding: 16px;
+}
+
+/* Responsive: mobile layouts */
+@media (max-width: 1200px) {
+  .pagination {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pagination button {
+    margin-bottom: 5px;
+  }
+
+  .search-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .search-bar input {
+    width: 100%;
+  }
+}
+
+@media (max-width: 700px) {
+  .search-bar {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .search-bar input {
+    width: 100%;
+  }
+
+  .pagination button {
+    width: 100%;
+    text-align: center;
+  }
+}
