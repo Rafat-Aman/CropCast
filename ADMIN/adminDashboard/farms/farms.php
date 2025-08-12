@@ -1,3 +1,129 @@
+<?php
+// /ProjectFolder/admin/adminDashboard/users/users.php
+session_start();
+require_once $_SERVER['DOCUMENT_ROOT'] . '/ProjectFolder/main.php';
+
+if (empty($_SESSION['user_id'])) {
+  header('Location: /ProjectFolder/login/login.html');
+  exit;
+}
+
+$active = 'users';          // highlight "Users" in the admin sidebar
+
+/* -------------------------
+   CSRF
+--------------------------*/
+if (empty($_SESSION['csrf'])) {
+  $_SESSION['csrf'] = bin2hex(random_bytes(16));
+}
+$csrf = $_SESSION['csrf'];
+
+/* -------------------------
+   DELETE (POST)
+--------------------------*/
+if (
+  $_SERVER['REQUEST_METHOD'] === 'POST' &&
+  isset($_POST['action'], $_POST['csrf']) &&
+  $_POST['action'] === 'delete' &&
+  hash_equals($_SESSION['csrf'], $_POST['csrf'])
+) {
+  $deleteId = (int)($_POST['user_id'] ?? 0);
+
+  $conn->begin_transaction();
+  try {
+    // delete child rows first
+    $stmt = $conn->prepare("DELETE FROM FARMER WHERE userID = ?");
+    $stmt->bind_param('i', $deleteId);
+    if (!$stmt->execute()) throw new Exception($stmt->error);
+    $stmt->close();
+
+    $stmt = $conn->prepare("DELETE FROM USERS WHERE userID = ?");
+    $stmt->bind_param('i', $deleteId);
+    if (!$stmt->execute()) throw new Exception($stmt->error);
+    $stmt->close();
+
+    $conn->commit();
+    $flash = ['type' => 'ok', 'text' => 'User deleted.'];
+  } catch (Exception $e) {
+    $conn->rollback();
+    $flash = ['type' => 'err', 'text' => 'Delete failed. Try again.'];
+  }
+}
+
+/* -------------------------
+   SEARCH + PAGINATION (POST)
+--------------------------*/
+$searchBy = $_POST['by']   ?? 'name';   // name|email|role
+$q        = isset($_POST['clear']) ? '' : trim($_POST['q'] ?? '');
+$page     = max(1, (int)($_POST['page'] ?? 1));
+$perPage  = 10;
+$offset   = ($page - 1) * $perPage;
+
+/* WHERE clause */
+$where  = '1';
+$params = [];
+$types  = '';
+
+if ($q !== '') {
+  switch ($searchBy) {
+    case 'email':
+      $where .= ' AND U.email LIKE ?';
+      $params[] = "%$q%";
+      $types .= 's';
+      break;
+    case 'role':
+      $where .= ' AND U.role = ?';
+      $params[] = $q;
+      $types .= 's';
+      break;
+    default: // name
+      $where .= ' AND U.name LIKE ?';
+      $params[] = "%$q%";
+      $types .= 's';
+  }
+}
+
+/* Count total */
+$sqlCount = "SELECT COUNT(*) AS c
+             FROM USERS U
+             LEFT JOIN FARMER F ON F.userID = U.userID
+             WHERE $where";
+$countStmt = $conn->prepare($sqlCount);
+if ($types) $countStmt->bind_param($types, ...$params);
+$countStmt->execute();
+$totalRows = ($countStmt->get_result()->fetch_assoc()['c']) ?? 0;
+$countStmt->close();
+$totalPages = (int)ceil($totalRows / $perPage);
+
+/* Fetch page rows */
+$sql = "SELECT
+          U.userID, U.name, U.email, U.role,
+          F.farmerID, F.profile_picture, F.phone, F.city, F.country
+        FROM USERS U
+        LEFT JOIN FARMER F ON F.userID = U.userID
+        WHERE $where
+        ORDER BY U.userID DESC
+        LIMIT ? OFFSET ?";
+$stmt = $conn->prepare($sql);
+if ($types) {
+  $types2  = $types . 'ii';
+  $params2 = array_merge($params, [$perPage, $offset]);
+  $stmt->bind_param($types2, ...$params2);
+} else {
+  $stmt->bind_param('ii', $perPage, $offset);
+}
+$stmt->execute();
+$rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
+
+/* Avatar URL helper (absolute) */
+function avatarUrl(?string $relPath): string
+{
+  if (!$relPath) return '/ProjectFolder/Dashboard/images/default-avatar.png';
+  // stored like "uploads/xxx.jpg" under /Dashboard/profile/
+  return '/ProjectFolder/Dashboard/profile/' . $relPath;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
