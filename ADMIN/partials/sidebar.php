@@ -28,6 +28,11 @@ $ADASH_URL = $ADMIN_URL . '/adminDashboard';
       <a href="<?= $ADASH_URL ?>/farms/farms.php"
          class="<?= ($active==='farms') ? 'active' : '' ?>">🌱 Farms</a>
     </li>
+        <li>
+      <a href="<?= $ADASH_URL ?>/feedback/feedback.php"
+         class="<?= ($active==='feedback') ? 'active' : '' ?>">💬 Feedback</a>
+    </li>
+
     <!-- Add more items as you add pages -->
     <li><a href="<?= $ADMIN_URL ?>/../logout.php">🚪 Logout</a></li>
   </ul>
