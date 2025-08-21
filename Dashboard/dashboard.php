@@ -51,6 +51,8 @@ if ($picPath) {
             <li><a href="soil/soil.php" id="menu-soil">🧪 Soil Data</a></li>
             <li><a href="reports/reports.php" id="menu-reports">📄 Reports</a></li>
             <li><a href="settings/settings.php" id="menu-settings">⚙️ Settings</a></li>
+
+            <li><a href="../Dashboard/feedback/feedback.php" id="feedback-link">💬 feedback</a></li>
             <li><a href="../logout.php" id="logout-link">🚪 Logout</a></li>
         </ul>
     </aside>

@@ -1,0 +1,76 @@
+/* dashboard.css */
+
+/* Styling the Feedback Section */
+.feedback-list {
+  margin-top: 20px;
+}
+
+.feedback-item {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+}
+
+.feedback-item h4 {
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+}
+
+.feedback-item p {
+  margin: 5px 0;
+}
+
+textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+button {
+  background-color: #2563eb;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #1d4ed8;
+}
+
+/* Flash Message */
+.flash {
+  margin-bottom: 20px;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.flash.ok {
+  background-color: #ecfdf5;
+  color: #065f46;
+}
+
+.flash.err {
+  background-color: #fef2f2;
+  color: #991b1b;
+}
+
+/* Responsive for smaller screens */
+@media (max-width: 768px) {
+  .feedback-item {
+    padding: 10px;
+  }
+
+  textarea {
+    height: 100px;
+  }
+
+  button {
+    padding: 8px 12px;
+  }
+}
