@@ -1,76 +1,146 @@
-/* dashboard.css */
+/* General Styles */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    display: flex;
+}
 
-/* Styling the Feedback Section */
+.dashboard-wrapper {
+    display: flex;
+    width: 100%;
+}
+
+.sidebar {
+    width: 220px;
+    background-color: #2e3b4e;
+    color: white;
+    padding: 20px;
+    min-height: 100vh;
+}
+
+.sidebar h2 {
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+    color: #a3d9a5;
+}
+
+.sidebar ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.sidebar ul li {
+    margin-bottom: 15px;
+}
+
+.sidebar ul li a {
+    color: white;
+    text-decoration: none;
+    font-size: 1rem;
+    display: block;
+    padding: 10px;
+    border-radius: 8px;
+    transition: background 0.3s;
+}
+
+.sidebar ul li a:hover,
+.sidebar ul li a.active {
+    background-color: #4e5d6c;
+}
+
+/* Main Feedback Content */
+.dashboard-container {
+    flex-grow: 1;
+    padding: 20px;
+}
+
+.page-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
 .feedback-list {
-  margin-top: 20px;
+    margin-top: 20px;
 }
 
 .feedback-item {
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
-  padding: 15px;
-  margin-bottom: 10px;
-  border-radius: 8px;
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
 }
 
 .feedback-item h4 {
-  margin: 0 0 10px;
-  font-size: 1.1rem;
+    margin: 0 0 10px;
+    font-size: 1.1rem;
 }
 
 .feedback-item p {
-  margin: 5px 0;
+    margin: 5px 0;
 }
 
 textarea {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  margin-bottom: 10px;
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    font-size: 1rem;
 }
 
 button {
-  background-color: #2563eb;
-  color: white;
-  padding: 10px 15px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
+    background-color: #2563eb;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
 }
 
 button:hover {
-  background-color: #1d4ed8;
+    background-color: #1d4ed8;
 }
 
-/* Flash Message */
+/* Flash Messages */
 .flash {
-  margin-bottom: 20px;
-  padding: 10px;
-  border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 20px;
+    border-radius: 8px;
 }
 
 .flash.ok {
-  background-color: #ecfdf5;
-  color: #065f46;
+    background-color: #ecfdf5;
+    color: #065f46;
 }
 
 .flash.err {
-  background-color: #fef2f2;
-  color: #991b1b;
+    background-color: #fef2f2;
+    color: #991b1b;
 }
 
-/* Responsive for smaller screens */
+/* Responsive: Mobile */
 @media (max-width: 768px) {
-  .feedback-item {
-    padding: 10px;
-  }
+    .sidebar {
+        width: 100%;
+        height: auto;
+    }
 
-  textarea {
-    height: 100px;
-  }
+    .dashboard-wrapper {
+        flex-direction: column;
+    }
 
-  button {
-    padding: 8px 12px;
-  }
+    .dashboard-container {
+        padding: 10px;
+    }
+
+    .feedback-item {
+        padding: 10px;
+    }
+
+    textarea {
+        height: 100px;
+    }
 }
