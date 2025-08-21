@@ -1,0 +1,100 @@
+/* feedback.css */
+
+/* General Styles */
+body {
+  font-family: Arial, sans-serif;
+  background: #eef1f5;
+}
+
+.admin-wrapper {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Main content */
+.admin-main {
+  flex: 1;
+  padding: 20px;
+  background: #ffffff;
+}
+
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.page-head h1 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.feedback-list {
+  margin-top: 20px;
+}
+
+.feedback-item {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+}
+
+.feedback-item h4 {
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+}
+
+.feedback-item p {
+  margin: 5px 0;
+}
+
+textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+button {
+  background-color: #2563eb;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #1d4ed8;
+}
+
+.flash {
+  padding: 10px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+}
+
+.flash.ok {
+  background-color: #ecfdf5;
+  color: #065f46;
+}
+
+.flash.err {
+  background-color: #fef2f2;
+  color: #991b1b;
+}
+
+/* Responsive: Mobile */
+@media (max-width: 768px) {
+  .feedback-item {
+    padding: 10px;
+  }
+
+  textarea {
+    height: 100px;
+  }
+}
