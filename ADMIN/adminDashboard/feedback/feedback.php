@@ -1,105 +1,242 @@
 <?php
-// feedback.php
+/**
+ * Admin • Feedback (messaging hub)
+ * Path: /admin/adminDashboard/feedback/feedback.php
+ */
 session_start();
-require_once $_SERVER['DOCUMENT_ROOT'] . '/ProjectFolder/main.php';
+header('Content-Type: text/html; charset=utf-8');
 
-if (empty($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header('Location: /ProjectFolder/login/login.html');
-    exit;
+require_once __DIR__ . '/../../../main.php'; // mysqli $conn from project root
+
+// Optional admin partial (non-fatal if missing)
+@include __DIR__ . '/../../partials/sidebar.php';
+
+/* ---- Session guard ----
+   Require login; if you have an admin flag, add it here. */
+if (!isset($_SESSION['user_id'])) {
+  http_response_code(401);
+  echo "<!doctype html><html><body><p>Unauthorized</p></body></html>";
+  exit;
 }
 
-$active = 'feedback';  // highlight "Feedback" in the admin sidebar
-
-/* -------------------------
-   CSRF Token for security
---------------------------*/
-if (empty($_SESSION['csrf'])) {
-    $_SESSION['csrf'] = bin2hex(random_bytes(16));
+if (!isset($conn) || !($conn instanceof mysqli)) {
+  http_response_code(500);
+  echo "<!doctype html><html><body><p>Database connection not configured.</p></body></html>";
+  exit;
 }
-$csrf = $_SESSION['csrf'];
 
-// Fetch all feedback reports
-$sql = "SELECT f.feedbackID, f.userID, f.message, f.date, u.name as user_name
-        FROM feedback f
-        LEFT JOIN users u ON f.userID = u.userID
-        WHERE f.admin_reply IS NULL ORDER BY f.date DESC";
+$flash = null;
+$flash_class = 'ok';
 
-$stmt = $conn->prepare($sql);
-$stmt->execute();
-$feedbacks = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
+$selectedUID = isset($_GET['uid']) ? (int)$_GET['uid'] : 0;
 
-// Handle admin reply
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['feedbackID'], $_POST['admin_reply'], $_POST['csrf'])) {
-    if (hash_equals($_SESSION['csrf'], $_POST['csrf'])) {
-        $feedbackID = (int)$_POST['feedbackID'];
-        $admin_reply = trim($_POST['admin_reply']);
+/* ---- Handle POST (admin replies or new outbound) ---- */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $selectedUID > 0) {
+  $adminText = trim((string)($_POST['admin_text'] ?? ''));
+  $replyTo   = isset($_POST['reply_to']) ? (int)$_POST['reply_to'] : 0;
 
-        $stmt = $conn->prepare("UPDATE feedback SET admin_reply = ? WHERE feedbackID = ?");
-        $stmt->bind_param('si', $admin_reply, $feedbackID);
-        if ($stmt->execute()) {
-            $flash = ['type' => 'ok', 'text' => 'Reply sent successfully.'];
+  if ($adminText === '') {
+    $flash = "Message cannot be empty."; $flash_class = "err";
+  } else {
+    if (mb_strlen($adminText) > 4000) $adminText = mb_substr($adminText, 0, 4000);
+
+    if ($replyTo > 0) {
+      // Reply to a specific message that has no admin_reply yet
+      $stmt = $conn->prepare(
+        "UPDATE feedback
+         SET admin_reply = ?
+         WHERE feedbackID = ? AND userID = ? AND (admin_reply IS NULL OR admin_reply = '')"
+      );
+      if ($stmt) {
+        $stmt->bind_param("sii", $adminText, $replyTo, $selectedUID);
+        if (!$stmt->execute()) {
+          $flash = "Reply failed: " . htmlspecialchars($stmt->error); $flash_class = "err";
+        } elseif ($stmt->affected_rows === 0) {
+          $flash = "Nothing updated (maybe already replied)."; $flash_class = "err";
         } else {
-            $flash = ['type' => 'err', 'text' => 'Failed to send reply.'];
+          header("Location: ?uid=" . $selectedUID); exit;
         }
         $stmt->close();
+      } else {
+        $flash = "Prepare failed: " . htmlspecialchars($conn->error); $flash_class = "err";
+      }
+    } else {
+      // New outbound message from admin to this user
+      // feedback.message is NOT NULL → use harmless placeholder
+      $placeholder = "[ADMIN]";
+      $stmt = $conn->prepare(
+        "INSERT INTO feedback (userID, date, message, admin_reply) VALUES (?, NOW(), ?, ?)"
+      );
+      if ($stmt) {
+        $stmt->bind_param("iss", $selectedUID, $placeholder, $adminText);
+        if (!$stmt->execute()) {
+          $flash = "Send failed: " . htmlspecialchars($stmt->error); $flash_class = "err";
+        } else {
+          header("Location: ?uid=" . $selectedUID); exit;
+        }
+        $stmt->close();
+      } else {
+        $flash = "Prepare failed: " . htmlspecialchars($conn->error); $flash_class = "err";
+      }
     }
+  }
 }
 
-$conn->close();
+/* ---- Farmer tiles (from `farmer`) ---- */
+$farmers = [];
+if ($res = $conn->query(
+  "SELECT farmerID, userID, profile_picture, city, country, farm_name, phone
+   FROM farmer
+   ORDER BY farm_name ASC"
+)) {
+  while ($row = $res->fetch_assoc()) $farmers[] = $row;
+  $res->free();
+}
+
+/* ---- Selected farmer details + thread ---- */
+$farmer = null;
+$thread = [];
+if ($selectedUID > 0) {
+  // farmer profile by userID
+  $stmt = $conn->prepare(
+    "SELECT farmerID, userID, profile_picture, address_line1, address_line2, city, state,
+            country, phone, gender, farm_name, farm_size, years_experience
+     FROM farmer
+     WHERE userID = ? LIMIT 1"
+  );
+  if ($stmt) {
+    $stmt->bind_param("i", $selectedUID);
+    if ($stmt->execute()) $farmer = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+  }
+
+  // conversation thread
+  $stmt = $conn->prepare(
+    "SELECT feedbackID, userID, date, message, admin_reply
+     FROM feedback
+     WHERE userID = ?
+     ORDER BY date ASC, feedbackID ASC"
+  );
+  if ($stmt) {
+    $stmt->bind_param("i", $selectedUID);
+    if ($stmt->execute()) {
+      $r = $stmt->get_result();
+      while ($row = $r->fetch_assoc()) $thread[] = $row;
+      $r->free();
+    }
+    $stmt->close();
+  }
+}
+
+// Helper to resolve profile image URL
+function farmer_img_src(?string $path): string {
+  // Stored links look like: uploads/user_18_xxx.png (relative to /Dashboard/profile/)
+  if ($path && $path !== '') {
+    return '../../../Dashboard/profile/' . ltrim($path, '/'); // from admin page to Dashboard/profile/uploads/...
+  }
+  return '../../../Dashboard/images/default-avatar.png';
+}
 ?>
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin • Feedback</title>
-    <link rel="stylesheet" href="/ProjectFolder/admin/adminDashboard/maindash/dashboard.css" />
-    <link rel="stylesheet" href="/ProjectFolder/admin/adminDashboard/farms/farms.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin • Feedback</title>
+  <!-- Page styles -->
+  <link rel="stylesheet" href="feedback.css?v=<?php echo time(); ?>">
+  <!-- Admin shell styles so the sidebar/top look right -->
+  <link rel="stylesheet" href="../maindash/dashboard.css?v=<?php echo time(); ?>">
 </head>
-
 <body>
-    <div class="admin-wrapper">
-        <!-- Sidebar include -->
-        <?php include $_SERVER['DOCUMENT_ROOT'] . '/ProjectFolder/admin/partials/sidebar.php'; ?>
+<div class="admin-wrapper">
+  <main class="admin-main">
 
-        <main class="admin-main">
-            <div class="page-head">
-                <h1><i class="fa-solid fa-comment-dots"></i> Feedback</h1>
+    <div class="page-head">
+      <h1>Admin Feedback</h1>
+      <form method="get" class="inline">
+        <?php if ($selectedUID): ?><input type="hidden" name="uid" value="<?php echo (int)$selectedUID; ?>"><?php endif; ?>
+        <button class="btn secondary" type="submit">🔄 Refresh</button>
+      </form>
+    </div>
+
+    <?php if ($flash): ?>
+      <div class="flash <?php echo $flash_class; ?>"><?php echo htmlspecialchars($flash); ?></div>
+    <?php endif; ?>
+
+    <div class="admin-grid">
+      <!-- Left: Farmer tiles -->
+      <section class="tiles" aria-label="Farmers">
+        <?php foreach ($farmers as $f):
+          $uid    = (int)$f['userID'];
+          $active = $selectedUID === $uid ? 'active' : '';
+          $pic    = farmer_img_src($f['profile_picture'] ?? '');
+        ?>
+          <a class="tile <?php echo $active; ?>" href="?uid=<?php echo $uid; ?>">
+            <img src="<?php echo htmlspecialchars($pic); ?>" alt="Profile">
+            <div>
+              <div class="tile-title"><?php echo htmlspecialchars($f['farm_name'] ?: ('User #'.$uid)); ?></div>
+              <div class="tile-sub"><?php echo htmlspecialchars(trim(($f['city']?:'') . ($f['country']?', '.$f['country']:''))); ?></div>
             </div>
+          </a>
+        <?php endforeach; ?>
+      </section>
 
-            <?php if (!empty($flash)): ?>
-                <div class="flash <?= $flash['type'] === 'ok' ? 'ok' : 'err' ?>">
-                    <?= htmlspecialchars($flash['text']) ?>
-                </div>
+      <!-- Middle: Chat -->
+      <section class="chat-shell" aria-label="Conversation">
+        <div class="chat-scroll">
+          <?php if (!$selectedUID): ?>
+            <div class="feedback-item">Select a farmer tile to start messaging.</div>
+          <?php else: foreach ($thread as $r): ?>
+            <?php if (!empty($r['message']) && $r['message'] !== '[ADMIN]'): ?>
+              <div class="msg-row">
+                <div class="bubble user"><?php echo nl2br(htmlspecialchars($r['message'])); ?></div>
+                <div class="meta left">User #<?php echo (int)$r['userID']; ?> • <?php echo date("M d, Y H:i", strtotime($r['date'])); ?></div>
+              </div>
             <?php endif; ?>
 
-            <!-- Feedback List -->
-            <div class="feedback-list">
-                <?php if (empty($feedbacks)): ?>
-                    <p>No new feedback to respond to.</p>
-                <?php else: ?>
-                    <?php foreach ($feedbacks as $feedback): ?>
-                        <div class="feedback-item">
-                            <h4>User: <?= htmlspecialchars($feedback['user_name']) ?> (ID: <?= $feedback['userID'] ?>)</h4>
-                            <p><strong>Message:</strong> <?= htmlspecialchars($feedback['message']) ?></p>
-                            <p><strong>Date:</strong> <?= $feedback['date'] ?></p>
+            <?php if (!empty($r['admin_reply'])): ?>
+              <div class="msg-row">
+                <div class="bubble admin"><?php echo nl2br(htmlspecialchars($r['admin_reply'])); ?></div>
+                <div class="meta right">Admin • reply to #<?php echo (int)$r['feedbackID']; ?></div>
+              </div>
+            <?php endif; ?>
 
-                            <!-- Reply Form -->
-                            <form method="POST" action="feedback.php">
-                                <input type="hidden" name="feedbackID" value="<?= $feedback['feedbackID'] ?>" />
-                                <input type="hidden" name="csrf" value="<?= $csrf ?>" />
-                                <textarea name="admin_reply" placeholder="Write your reply here..." rows="5" required></textarea>
-                                <button type="submit" class="btn btn-primary">Send Reply</button>
-                            </form>
-                        </div>
-                        <hr />
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </div>
-        </main>
+            <?php if (empty($r['admin_reply'])): ?>
+              <form method="post" class="composer">
+                <input type="hidden" name="reply_to" value="<?php echo (int)$r['feedbackID']; ?>">
+                <textarea name="admin_text" required placeholder="Reply to #<?php echo (int)$r['feedbackID']; ?>..."></textarea>
+                <button class="btn" type="submit">Reply</button>
+              </form>
+            <?php endif; ?>
+          <?php endforeach; endif; ?>
+        </div>
+
+        <?php if ($selectedUID): ?>
+        <form class="composer" method="post">
+          <textarea name="admin_text" maxlength="4000" placeholder="Send a new message to this farmer..." required></textarea>
+          <button class="btn" type="submit">Send</button>
+        </form>
+        <?php endif; ?>
+      </section>
+
+      <!-- Right: Profile -->
+      <aside class="profile" aria-label="Farmer details">
+        <?php if (!$farmer): ?>
+          <div>Select a farmer to view profile.</div>
+        <?php else: ?>
+          <img src="<?php echo htmlspecialchars(farmer_img_src($farmer['profile_picture'] ?? '')); ?>" alt="Profile">
+          <div class="line title"><?php echo htmlspecialchars($farmer['farm_name'] ?: ('User #'.$selectedUID)); ?></div>
+          <div class="line"><?php echo htmlspecialchars(trim(($farmer['city']?:'') . ($farmer['country']?', '.$farmer['country']:''))); ?></div>
+          <div class="line">Phone: <?php echo htmlspecialchars($farmer['phone']); ?></div>
+          <div class="line">Gender: <?php echo htmlspecialchars($farmer['gender']); ?></div>
+          <div class="line">Farm size: <?php echo htmlspecialchars($farmer['farm_size']); ?></div>
+          <div class="line">Experience: <?php echo htmlspecialchars($farmer['years_experience']); ?> yrs</div>
+          <div class="line">Address: <?php echo htmlspecialchars(trim(($farmer['address_line1']??'').' '.($farmer['address_line2']??''))); ?></div>
+        <?php endif; ?>
+      </aside>
     </div>
+  </main>
+</div>
 </body>
-
 </html>
