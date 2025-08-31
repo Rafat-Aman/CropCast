@@ -216,6 +216,7 @@ try {
             <li><a href="../dashboard.php">📊 Dashboard</a></li>
             <li><a href="../profile/profile.html">👤 Profile</a></li>
             <li><a href="../fields/fields.php">🌱 Fields</a></li>
+            <li><a href="../crop/crop.php">🌾 Crop</a></li>
             <li><a href="../weather/weather.php">☁️ Weather</a></li>
             <li><a href="soil.php" class="active">🧪 Soil Data</a></li>
             <li><a href="../reports/reports.php">📄 Reports</a></li>

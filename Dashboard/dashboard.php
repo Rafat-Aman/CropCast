@@ -47,7 +47,7 @@ if ($picPath) {
             <li><a href="dashboard.php" id="menu-dashboard" class="active">📊 Dashboard</a></li>
             <li><a href="profile/profile.php" id="menu-profile">👤 Profile</a></li>
             <li><a href="fields/fields.php" id="menu-fields">🌱 Fields</a></li>
-            <li><a href="weather/weather.php" id="menu-weather">☁️ Weather</a></li>
+            <li><a href="crop/crop.php" id="menu-weather"> Crop</a></li>
             <li><a href="soil/soil.php" id="menu-soil">🧪 Soil Data</a></li>
             <li><a href="reports/reports.php" id="menu-reports">📄 Reports</a></li>
             <li><a href="settings/settings.php" id="menu-settings">⚙️ Settings</a></li>
