@@ -8,11 +8,7 @@ header('Content-Type: text/html; charset=utf-8');
 
 require_once __DIR__ . '/../../../main.php'; // mysqli $conn from project root
 
-// Optional admin partial (non-fatal if missing)
-@include __DIR__ . '/../../partials/sidebar.php';
-
-/* ---- Session guard ----
-   Require login; if you have an admin flag, add it here. */
+/* ---- Session guard ---- */
 if (!isset($_SESSION['user_id'])) {
   http_response_code(401);
   echo "<!doctype html><html><body><p>Unauthorized</p></body></html>";
@@ -41,7 +37,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $selectedUID > 0) {
     if (mb_strlen($adminText) > 4000) $adminText = mb_substr($adminText, 0, 4000);
 
     if ($replyTo > 0) {
-      // Reply to a specific message that has no admin_reply yet
       $stmt = $conn->prepare(
         "UPDATE feedback
          SET admin_reply = ?
@@ -61,8 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $selectedUID > 0) {
         $flash = "Prepare failed: " . htmlspecialchars($conn->error); $flash_class = "err";
       }
     } else {
-      // New outbound message from admin to this user
-      // feedback.message is NOT NULL → use harmless placeholder
+      // New outbound to this user — feedback.message is NOT NULL, use placeholder
       $placeholder = "[ADMIN]";
       $stmt = $conn->prepare(
         "INSERT INTO feedback (userID, date, message, admin_reply) VALUES (?, NOW(), ?, ?)"
@@ -97,7 +91,6 @@ if ($res = $conn->query(
 $farmer = null;
 $thread = [];
 if ($selectedUID > 0) {
-  // farmer profile by userID
   $stmt = $conn->prepare(
     "SELECT farmerID, userID, profile_picture, address_line1, address_line2, city, state,
             country, phone, gender, farm_name, farm_size, years_experience
@@ -110,7 +103,6 @@ if ($selectedUID > 0) {
     $stmt->close();
   }
 
-  // conversation thread
   $stmt = $conn->prepare(
     "SELECT feedbackID, userID, date, message, admin_reply
      FROM feedback
@@ -128,11 +120,10 @@ if ($selectedUID > 0) {
   }
 }
 
-// Helper to resolve profile image URL
+// Resolve profile image URL stored like "uploads/user_18_*.png" under /Dashboard/profile/
 function farmer_img_src(?string $path): string {
-  // Stored links look like: uploads/user_18_xxx.png (relative to /Dashboard/profile/)
   if ($path && $path !== '') {
-    return '../../../Dashboard/profile/' . ltrim($path, '/'); // from admin page to Dashboard/profile/uploads/...
+    return '../../../Dashboard/profile/' . ltrim($path, '/');
   }
   return '../../../Dashboard/images/default-avatar.png';
 }
@@ -143,15 +134,15 @@ function farmer_img_src(?string $path): string {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Admin • Feedback</title>
-  <!-- Page styles -->
   <link rel="stylesheet" href="feedback.css?v=<?php echo time(); ?>">
-  <!-- Admin shell styles so the sidebar/top look right -->
   <link rel="stylesheet" href="../maindash/dashboard.css?v=<?php echo time(); ?>">
 </head>
 <body>
 <div class="admin-wrapper">
-  <main class="admin-main">
+  <?php /* IMPORTANT: sidebar partial INSIDE the wrapper as flex child #1 */ ?>
+  <?php @include __DIR__ . '/../../partials/sidebar.php'; ?>
 
+  <main class="admin-main">
     <div class="page-head">
       <h1>Admin Feedback</h1>
       <form method="get" class="inline">
