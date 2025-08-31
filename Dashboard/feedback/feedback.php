@@ -1,101 +1,159 @@
 <?php
-// Start session at the top of the file
+/**
+ * feedback.php — messaging-style page using mysqli (consistent with main.php)
+ * - Reads userID from session only
+ * - Uses $conn from ../../main.php
+ */
 session_start();
+header('Content-Type: text/html; charset=utf-8');
+require_once __DIR__ . '/../../main.php'; // provides $conn (mysqli)
 
-// Include database connection
-include('../../main.php');
-
-// Check if the user is logged in
+// ---- Session guard ----
 if (!isset($_SESSION['user_id'])) {
-    header("Location: ../login.php");
-    exit();
+    http_response_code(401);
+    echo "<!doctype html><html><body><p>Unauthorized</p></body></html>";
+    exit;
+}
+$userID = (int)$_SESSION['user_id'];
+
+// ---- Ensure we have a mysqli connection ----
+if (!isset($conn) || !($conn instanceof mysqli)) {
+    http_response_code(500);
+    echo "<!doctype html><html><body><p>Database connection not configured. main.php must set $conn = new mysqli(...)</p></body></html>";
+    exit;
 }
 
-// Get the logged-in user's ID from the session
-$userID = $_SESSION['user_id'];
+$flash = null;
+$flash_class = 'ok';
 
-// Flash message variable
-$flash_message = '';
-
-// Handle form submission
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Sanitize the input to prevent SQL injection
-    $message = htmlspecialchars($_POST['message']);
-    
-    // Insert feedback into the database
-    $stmt = $conn->prepare("INSERT INTO feedback (userID, message) VALUES (?, ?)");
-    $stmt->bind_param("is", $userID, $message);
-    
-    // Check if the query was successful
-    if ($stmt->execute()) {
-        $flash_message = "<div class='flash ok'>Feedback submitted successfully!</div>";
+// Handle new message submit
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message'])) {
+    $message = trim((string)$_POST['message']);
+    if ($message === '') {
+        $flash = "Message cannot be empty.";
+        $flash_class = "err";
     } else {
-        $flash_message = "<div class='flash err'>Error submitting feedback.</div>";
+        if (mb_strlen($message) > 4000) {
+            $message = mb_substr($message, 0, 4000);
+        }
+        $stmt = $conn->prepare("INSERT INTO feedback (userID, date, message, admin_reply) VALUES (?, NOW(), ?, NULL)");
+        if ($stmt === false) {
+            http_response_code(500);
+            $flash = "Prepare failed: " . htmlspecialchars($conn->error);
+            $flash_class = "err";
+        } else {
+            $stmt->bind_param("is", $userID, $message);
+            if (!$stmt->execute()) {
+                http_response_code(500);
+                $flash = "Insert failed: " . htmlspecialchars($stmt->error);
+                $flash_class = "err";
+            } else {
+                // PRG
+                header("Location: " . strtok($_SERVER["REQUEST_URI"], '?'));
+                exit;
+            }
+            $stmt->close();
+        }
     }
 }
 
-// Fetch existing feedback from the database
-$sql = "SELECT * FROM feedback";
-$result = $conn->query($sql);
-?>
+// Load conversation for this user
+$rows = [];
+$stmt = $conn->prepare("SELECT feedbackID, userID, date, message, admin_reply
+                        FROM feedback
+                        WHERE userID = ?
+                        ORDER BY date ASC, feedbackID ASC");
+if ($stmt) {
+    $stmt->bind_param("i", $userID);
+    if ($stmt->execute()) {
+        $result = $stmt->get_result();
+        while ($row = $result->fetch_assoc()) {
+            $rows[] = $row;
+        }
+        $result->free();
+    }
+    $stmt->close();
+} else {
+    // Surface prepare error
+    $flash = "Query prepare failed: " . htmlspecialchars($conn->error);
+    $flash_class = "err";
+}
 
-<!DOCTYPE html>
+?>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feedback</title>
-    <link rel="stylesheet" href="feedback.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Feedback</title>
+  <link rel="stylesheet" href="feedback.css?v=<?php echo time(); ?>">
 </head>
 <body>
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <h2>🌾 CropCast</h2>
-        <ul>
-            <li><a href="dashboard.php" id="menu-dashboard">📊 Dashboard</a></li>
-            <li><a href="profile/profile.php" id="menu-profile">👤 Profile</a></li>
-            <li><a href="fields/fields.php" id="menu-fields">🌱 Fields</a></li>
-            <li><a href="weather/weather.php" id="menu-weather">☁️ Weather</a></li>
-            <li><a href="soil/soil.php" id="menu-soil">🧪 Soil Data</a></li>
-            <li><a href="reports/reports.php" id="menu-reports">📄 Reports</a></li>
-            <li><a href="settings/settings.php" id="menu-settings">⚙️ Settings</a></li>
-            <li><a href="feedback.php" id="feedback-link" class="active">💬 Feedback</a></li>
-            <li><a href="../logout.php" id="logout-link">🚪 Logout</a></li>
-        </ul>
-    </aside>
+<div class="dashboard-wrapper">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <h2>Menu</h2>
+    <ul>
+      <li><a href="/dashboard.php" id="menu-dashboard">📊 Dashboard</a></li>
+      <li><a href="/profile/profile.php" id="menu-profile">👤 Profile</a></li>
+      <li><a href="/fields/fields.php" id="menu-fields">🌱 Fields</a></li>
+      <li><a href="/crop/crop.php" id="menu-crop">🌾 Crop</a></li>
+      <li><a href="/soil/soil.php" id="menu-soil">🧪 Soil Data</a></li>
+      <li><a href="/reports/reports.php" id="menu-reports">📄 Reports</a></li>
+      <li><a class="active" href="/feedback/feedback.php" id="menu-feedback">💬 Feedback</a></li>
+      <li><a href="/settings/settings.php" id="menu-settings">⚙️ Settings</a></li>
+    </ul>
+  </aside>
 
-    <div class="dashboard-wrapper">
-        <div class="dashboard-container">
-            <div class="page-head">
-                <h1>Feedback</h1>
-            </div>
-
-            <!-- Flash message -->
-            <?php echo $flash_message; ?>
-
-            <!-- Feedback List -->
-            <div class="feedback-list">
-                <?php
-                if ($result->num_rows > 0) {
-                    while ($row = $result->fetch_assoc()) {
-                        echo "<div class='feedback-item'>
-                                <h4>User ID: " . $row['userID'] . "</h4>
-                                <p>" . $row['message'] . "</p>
-                              </div>";
-                    }
-                } else {
-                    echo "<p>No feedback yet.</p>";
-                }
-                ?>
-            </div>
-
-            <!-- Feedback Form -->
-            <form method="POST" action="feedback.php">
-                <textarea name="message" rows="5" placeholder="Write your feedback here..." required></textarea>
-                <br>
-                <button type="submit">Submit Feedback</button>
-            </form>
-        </div>
+  <!-- Main -->
+  <main class="dashboard-container">
+    <div class="page-head">
+      <h1>Support Chat</h1>
+      <div class="actions">
+        <form method="get">
+          <button type="submit" class="btn secondary">🔄 Refresh</button>
+        </form>
+      </div>
     </div>
+
+    <?php if ($flash): ?>
+      <div class="flash <?php echo $flash_class; ?>"><?php echo htmlspecialchars($flash); ?></div>
+    <?php endif; ?>
+
+    <section class="chat-shell" aria-label="Conversation">
+      <div class="chat-scroll" id="chat">
+        <?php if (empty($rows)): ?>
+          <div class="feedback-item">No messages yet. Start the conversation below.</div>
+        <?php else: foreach ($rows as $r): ?>
+            <div class="msg-row">
+              <div class="bubble user">
+                <?php echo nl2br(htmlspecialchars($r['message'] ?? '')); ?>
+              </div>
+              <div class="meta right">
+                You • <?php echo date("M d, Y H:i", strtotime($r['date'])); ?>
+              </div>
+
+              <?php if (!is_null($r['admin_reply']) && $r['admin_reply'] !== ''): ?>
+                <div class="bubble admin">
+                  <?php echo nl2br(htmlspecialchars($r['admin_reply'])); ?>
+                </div>
+                <div class="meta left">
+                  Admin • reply to #<?php echo (int)$r['feedbackID']; ?>
+                </div>
+              <?php else: ?>
+                <div class="meta left">Admin • (pending reply)</div>
+              <?php endif; ?>
+            </div>
+        <?php endforeach; endif; ?>
+      </div>
+
+      <!-- Composer -->
+      <form class="composer" method="post" action="">
+        <textarea name="message" maxlength="4000" placeholder="Type your message to admin..." required></textarea>
+        <button type="submit" class="btn">Send</button>
+      </form>
+    </section>
+  </main>
+</div>
 </body>
 </html>
