@@ -1,93 +1,231 @@
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    display: flex;
-}
+/* =========================
+   Sidebar + Layout (fixed)
+   ========================= */
 
-.fields-wrapper {
-    display: flex;
-    width: 100%;
-}
-
+/* Make the sidebar fixed and full-height */
 .sidebar {
-    width: 220px;
-    background-color: #2e3b4e;
-    color: white;
-    padding: 20px;
-    min-height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 220px;
+  height: 100vh;
+  background-color: #2e3b4e;
+  color: #fff;
+  padding: 20px;
+  overflow-y: auto;
 }
 
+/* Brand/title in sidebar */
 .sidebar h2 {
-    margin-bottom: 20px;
-    font-size: 1.5rem;
-    color: #a3d9a5;
+  font-size: 1.6rem;
+  margin: 0 0 1rem;
+  color: #a3d9a5;
 }
 
-.sidebar ul {
-    list-style-type: none;
-    padding: 0;
-}
-
-.sidebar ul li {
-    margin-bottom: 15px;
-}
-
+/* Sidebar nav */
+.sidebar ul { list-style: none; margin: 0; padding: 0; }
+.sidebar ul li { margin-bottom: 0.75rem; }
 .sidebar ul li a {
-    color: white;
-    text-decoration: none;
-    font-size: 1rem;
-    display: block;
-    padding: 10px;
-    border-radius: 8px;
-    transition: background 0.3s;
+  color: #fff;
+  text-decoration: none;
+  display: block;
+  padding: 8px;
+  border-radius: 6px;
+  transition: background .2s;
 }
-
 .sidebar ul li a:hover,
-.sidebar ul li a.active {
-    background-color: #4e5d6c;
+.sidebar ul li a.active { background-color: #4e5d6c; }
+
+/* Shift the main content so it doesn't slide under the fixed sidebar */
+body {
+  margin: 0;
+  padding: 0;
+  /* leave room for the fixed 220px sidebar */
+  margin-left: 220px;
+  background: #eef2f7;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+  color: #1f2937;
 }
 
-.fields-container {
-    flex-grow: 1;
-    padding: 20px;
+/* =========================
+   CropCast light UI styles
+   ========================= */
+:root{
+  --bg:        #eef2f7;    /* app background */
+  --surface:   #ffffff;    /* cards / panels */
+  --text:      #1f2937;    /* primary text */
+  --muted:     #6b7280;    /* secondary text */
+  --border:    #e5e7eb;    /* subtle borders */
+  --input:     #f9fafb;    /* input background */
+  --focus:     #3b82f6;    /* blue focus ring */
+  --primary:   #0d6efd;    /* button primary */
+  --primary-h: #0b5ed7;    /* primary hover */
+  --danger:    #dc3545;    /* delete button */
+  --danger-h:  #bb2d3b;
+  --shadow:    0 6px 18px rgba(31,41,55,0.08);
+  --radius-sm: 10px;
+  --radius-md: 14px;
 }
 
-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+* { box-sizing: border-box; }
+
+/* ---------- layout for content area ---------- */
+.container {
+  /* full-width content but with comfortable max width */
+  max-width: 1080px;
+  margin: 28px auto;
+  padding: 0 20px;
+  background: transparent;
 }
 
-.field-list {
-    margin-top: 30px;
-    background-color: #f2f2f2;
-    padding: 20px;
-    border-radius: 12px;
-    max-width: 600px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+.header { margin-bottom: 18px; }
+.header h1 {
+  margin: 0 0 6px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: .2px;
+}
+.subtitle {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
 }
 
-.field-list h2 {
-    margin-bottom: 15px;
+/* ---------- panels / cards ---------- */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  padding: 18px;
+  margin-bottom: 20px;
+}
+.panel > h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 600;
 }
 
-.field-list ul {
-    list-style: disc;
-    padding-left: 20px;
+/* ---------- form ---------- */
+.form { display: grid; gap: 14px; }
+.form-row { display: grid; gap: 6px; }
+
+label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
 }
 
-#addFieldBtn {
-    margin-top: 20px;
-    padding: 10px 16px;
-    font-size: 1rem;
-    background-color: #388e3c;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.3s;
+input, select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--input);
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+}
+input::placeholder { color: #9ca3af; }
+input:focus, select:focus {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.2);
+  background: #fff;
 }
 
-#addFieldBtn:hover {
-    background-color: #2e7030;
+/* ---------- buttons ---------- */
+.btn {
+  appearance: none;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--primary);
+  color: #fff;
+  transition: background-color .15s ease, transform .02s ease;
+}
+.btn:hover { background: var(--primary-h); }
+.btn:active { transform: translateY(1px); }
+
+.btn-danger {
+  background: var(--danger);
+}
+.btn-danger:hover {
+  background: var(--danger-h);
+}
+
+/* ---------- list + farm cards ---------- */
+.list { display: grid; gap: 12px; }
+
+.card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+}
+.card-main > div { margin: 2px 0; }
+.card-main strong { font-weight: 700; }
+.card-actions { display: flex; gap: 8px; }
+
+/* ---------- messages / empty states ---------- */
+.msg { margin-top: 8px; color: var(--muted); font-size: 13px; }
+.empty {
+  color: var(--muted);
+  font-style: italic;
+  padding: 10px 0;
+}
+
+/* =========================
+   Responsive behavior
+   ========================= */
+@media (max-width: 1024px) {
+  /* allow content more space; keep fixed sidebar */
+  .container { margin: 20px auto; padding: 0 16px; }
+}
+
+@media (max-width: 860px) {
+  /* Turn the sidebar into a top bar and remove fixed layout */
+  .sidebar {
+    position: static;
+    width: 100%;
+    height: auto;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+  }
+  body { margin-left: 0; }
+  .container { margin: 16px auto; padding: 0 14px; }
+  .header h1 { font-size: 22px; }
+  .panel { padding: 14px; }
+  .card { grid-template-columns: 1fr; }
+  .btn { width: 100%; }
+}
+/* ===== Force-correct highlight for the Fields page (URL-based) ===== */
+
+/* 1) Neutralize any wrong .active highlight */
+.sidebar ul li a.active:not([href*="fields"]):not([href*="fields.php"]) {
+  background-color: transparent !important;
+}
+
+/* 2) Positively highlight the Fields nav item when we're on fields.php */
+.sidebar ul li a[href*="fields"],
+.sidebar ul li a[href*="fields.php"] {
+  background-color: #4e5d6c !important;
+  color: #fff !important;
+}
+
+/* (Optional) If you also have a Soil page, keep its highlight only on Soil pages */
+.sidebar ul li a.active[href*="soil"],
+.sidebar ul li a.active[href*="soiltype"],
+.sidebar ul li a.active[href*="soil-data"],
+.sidebar ul li a.active[href*="soil.php"] {
+  background-color: #4e5d6c !important;
 }
