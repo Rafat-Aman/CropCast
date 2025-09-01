@@ -230,9 +230,7 @@ if ($selectedUID > 0) {
 
 <body>
   <div class="admin-wrapper">
-    <?php /* IMPORTANT: sidebar partial INSIDE the wrapper as flex child #1 */ ?>
     <?php @include __DIR__ . '/../../partials/sidebar.php'; ?>
-
     <main class="admin-main">
       <!-- ============== PAGE HEADER ============== -->
       <div class="page-head">
