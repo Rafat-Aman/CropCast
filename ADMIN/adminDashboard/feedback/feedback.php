@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Admin • Feedback (messaging hub)
  * Path: /admin/adminDashboard/feedback/feedback.php
@@ -52,7 +53,8 @@ $selectedUID = isset($_GET['uid']) ? (int)$_GET['uid'] : 0; // farmer user id ch
 /**
  * Resolve profile image URL stored like "uploads/user_18_*.png" under /Dashboard/profile/
  */
-function farmer_img_src(?string $path): string {
+function farmer_img_src(?string $path): string
+{
   if ($path && $path !== '') {
     return '../../../Dashboard/profile/' . ltrim($path, '/');
   }
@@ -106,9 +108,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $selectedUID > 0) {
    =========================================== */
 $farmers = [];
 if ($res = $conn->query(
-  "SELECT farmerID, userID, profile_picture, city, country, farm_name, phone
-   FROM farmer
-   ORDER BY farm_name ASC"
+  "SELECT f.farmerID, f.userID, f.profile_picture, f.city, f.country, u.name AS farm_name, f.phone
+   FROM farmer f
+   JOIN users u ON f.userID = u.userID
+   ORDER BY u.name ASC"
 )) {
   while ($row = $res->fetch_assoc()) $farmers[] = $row;
   $res->free();
@@ -145,11 +148,19 @@ $thread = [];
 if ($selectedUID > 0) {
   // Load farmer profile (by userID)
   $stmt = $conn->prepare(
-    "SELECT farmerID, userID, profile_picture, address_line1, address_line2, city, state,
-            country, phone, gender, farm_name, farm_size, years_experience
-     FROM farmer
-     WHERE userID = ? LIMIT 1"
+    "SELECT
+      f.farmerID, f.userID, f.profile_picture, f.address_line1, f.address_line2, f.city, f.state,
+      f.country, f.phone, f.gender, u.name AS farm_name, COALESCE(fs.farm_size, 0) AS farm_size, f.years_experience
+   FROM farmer f
+   JOIN users u ON f.userID = u.userID
+   LEFT JOIN (
+       SELECT farmerID, SUM(area_size) AS farm_size
+       FROM farm
+       GROUP BY farmerID
+   ) fs ON fs.farmerID = f.farmerID
+   WHERE f.userID = ? LIMIT 1"
   );
+
   if ($stmt) {
     $stmt->bind_param("i", $selectedUID);
     if ($stmt->execute()) $farmer = $stmt->get_result()->fetch_assoc();
@@ -190,6 +201,7 @@ if ($selectedUID > 0) {
 ?>
 <!doctype html>
 <html lang="en">
+
 <head>
   <!-- ======= HTML HEAD (styles only, no logic) ======= -->
   <meta charset="utf-8" />
@@ -200,123 +212,133 @@ if ($selectedUID > 0) {
   <style>
     /* tiny badge for unread counts on farmer tiles */
     .badge {
-      display:inline-flex; align-items:center; justify-content:center;
-      min-width:18px; height:18px; padding:0 6px;
-      border-radius:999px; font-size:12px; font-weight:700;
-      background:#ef4444; color:#fff; margin-left:8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 6px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #ef4444;
+      color: #fff;
+      margin-left: 8px;
     }
   </style>
 </head>
+
 <body>
-<div class="admin-wrapper">
-  <?php /* IMPORTANT: sidebar partial INSIDE the wrapper as flex child #1 */ ?>
-  <?php @include __DIR__ . '/../../partials/sidebar.php'; ?>
+  <div class="admin-wrapper">
+    <?php /* IMPORTANT: sidebar partial INSIDE the wrapper as flex child #1 */ ?>
+    <?php @include __DIR__ . '/../../partials/sidebar.php'; ?>
 
-  <main class="admin-main">
-    <!-- ============== PAGE HEADER ============== -->
-    <div class="page-head">
-      <h1>Admin Feedback</h1>
-      <form method="get" class="inline">
-        <?php if ($selectedUID): ?>
-          <input type="hidden" name="uid" value="<?php echo (int)$selectedUID; ?>">
-        <?php endif; ?>
-        <button class="btn secondary" type="submit">🔄 Refresh</button>
-      </form>
-    </div>
+    <main class="admin-main">
+      <!-- ============== PAGE HEADER ============== -->
+      <div class="page-head">
+        <h1>Admin Feedback</h1>
+        <form method="get" class="inline">
+          <?php if ($selectedUID): ?>
+            <input type="hidden" name="uid" value="<?php echo (int)$selectedUID; ?>">
+          <?php endif; ?>
+          <button class="btn secondary" type="submit">🔄 Refresh</button>
+        </form>
+      </div>
 
-    <!-- ============== FLASH MESSAGE (if any) ============== -->
-    <?php if ($flash): ?>
-      <div class="flash <?php echo $flash_class; ?>"><?php echo htmlspecialchars($flash); ?></div>
-    <?php endif; ?>
+      <!-- ============== FLASH MESSAGE (if any) ============== -->
+      <?php if ($flash): ?>
+        <div class="flash <?php echo $flash_class; ?>"><?php echo htmlspecialchars($flash); ?></div>
+      <?php endif; ?>
 
-    <div class="admin-grid">
-      <!-- ============== LEFT: FARMER TILES ============== -->
-      <section class="tiles" aria-label="Farmers">
-        <?php foreach ($farmers as $f):
-          $uid    = (int)$f['userID'];
-          $active = $selectedUID === $uid ? 'active' : '';
-          $pic    = farmer_img_src($f['profile_picture'] ?? '');
-          $unread = $unreadByUser[$uid] ?? 0;
-        ?>
-          <a class="tile <?php echo $active; ?>" href="?uid=<?php echo $uid; ?>">
-            <img src="<?php echo htmlspecialchars($pic); ?>" alt="Profile">
-            <div>
-              <div class="tile-title">
-                <?php echo htmlspecialchars($f['farm_name'] ?: ('User #'.$uid)); ?>
-                <?php if ($unread > 0): ?><span class="badge"><?php echo (int)$unread; ?></span><?php endif; ?>
+      <div class="admin-grid">
+        <!-- ============== LEFT: FARMER TILES ============== -->
+        <section class="tiles" aria-label="Farmers">
+          <?php foreach ($farmers as $f):
+            $uid    = (int)$f['userID'];
+            $active = $selectedUID === $uid ? 'active' : '';
+            $pic    = farmer_img_src($f['profile_picture'] ?? '');
+            $unread = $unreadByUser[$uid] ?? 0;
+          ?>
+            <a class="tile <?php echo $active; ?>" href="?uid=<?php echo $uid; ?>">
+              <img src="<?php echo htmlspecialchars($pic); ?>" alt="Profile">
+              <div>
+                <div class="tile-title">
+                  <?php echo htmlspecialchars($f['farm_name'] ?: ('User #' . $uid)); ?>
+                  <?php if ($unread > 0): ?><span class="badge"><?php echo (int)$unread; ?></span><?php endif; ?>
+                </div>
+                <div class="tile-sub">
+                  <?php echo htmlspecialchars(trim(($f['city'] ?: '') . ($f['country'] ? ', ' . $f['country'] : ''))); ?>
+                </div>
               </div>
-              <div class="tile-sub">
-                <?php echo htmlspecialchars(trim(($f['city']?:'') . ($f['country']?', '.$f['country']:''))); ?>
-              </div>
-            </div>
-          </a>
-        <?php endforeach; ?>
-      </section>
+            </a>
+          <?php endforeach; ?>
+        </section>
 
-      <!-- ============== MIDDLE: CHAT THREAD ============== -->
-      <section class="chat-shell" aria-label="Conversation">
-        <div class="chat-scroll">
+        <!-- ============== MIDDLE: CHAT THREAD ============== -->
+        <section class="chat-shell" aria-label="Conversation">
+          <div class="chat-scroll">
 
-          <?php if (!$selectedUID): ?>
-            <!-- Empty state before selecting a farmer -->
-            <div class="feedback-item">Select a farmer tile to start messaging.</div>
+            <?php if (!$selectedUID): ?>
+              <!-- Empty state before selecting a farmer -->
+              <div class="feedback-item">Select a farmer tile to start messaging.</div>
 
-          <?php else: ?>
-            <?php if (empty($thread)): ?>
-              <!-- Empty state when no messages exist yet -->
-              <div class="feedback-item">No messages yet. Start the conversation below.</div>
             <?php else: ?>
-              <?php foreach ($thread as $m): ?>
-                <?php
+              <?php if (empty($thread)): ?>
+                <!-- Empty state when no messages exist yet -->
+                <div class="feedback-item">No messages yet. Start the conversation below.</div>
+              <?php else: ?>
+                <?php foreach ($thread as $m): ?>
+                  <?php
                   // Who sent it? Align accordingly:
                   // - Admin (SID == $adminID) => right bubble (admin)
                   // - Farmer (SID == $selectedUID) => left bubble (user)
                   $isAdmin  = ((int)$m['SID'] === $adminID);
                   $bubble   = $isAdmin ? 'admin' : 'user';
                   $metaSide = $isAdmin ? 'right' : 'left';
-                  $whoLabel = $isAdmin ? 'Admin' : ('User #'.$selectedUID);
+                  $whoLabel = $isAdmin ? 'Admin' : ('User #' . $selectedUID);
                   $when     = date("M d, Y H:i", strtotime($m['timestamp']));
-                ?>
-                <div class="msg-row">
-                  <div class="bubble <?php echo $bubble; ?>">
-                    <?php echo nl2br(htmlspecialchars((string)$m['text'])); ?>
+                  ?>
+                  <div class="msg-row">
+                    <div class="bubble <?php echo $bubble; ?>">
+                      <?php echo nl2br(htmlspecialchars((string)$m['text'])); ?>
+                    </div>
+                    <div class="meta <?php echo $metaSide; ?>">
+                      <?php echo $whoLabel; ?> • <?php echo $when; ?>
+                    </div>
                   </div>
-                  <div class="meta <?php echo $metaSide; ?>">
-                    <?php echo $whoLabel; ?> • <?php echo $when; ?>
-                  </div>
-                </div>
-              <?php endforeach; ?>
+                <?php endforeach; ?>
+              <?php endif; ?>
             <?php endif; ?>
+
+          </div>
+
+          <!-- Composer appears only when a farmer is selected -->
+          <?php if ($selectedUID): ?>
+            <form class="composer" method="post">
+              <textarea name="admin_text" maxlength="4000" placeholder="Send a new message to this farmer..." required></textarea>
+              <button class="btn" type="submit">Send</button>
+            </form>
           <?php endif; ?>
+        </section>
 
-        </div>
-
-        <!-- Composer appears only when a farmer is selected -->
-        <?php if ($selectedUID): ?>
-        <form class="composer" method="post">
-          <textarea name="admin_text" maxlength="4000" placeholder="Send a new message to this farmer..." required></textarea>
-          <button class="btn" type="submit">Send</button>
-        </form>
-        <?php endif; ?>
-      </section>
-
-      <!-- ============== RIGHT: FARMER PROFILE ============== -->
-      <aside class="profile" aria-label="Farmer details">
-        <?php if (!$farmer): ?>
-          <div>Select a farmer to view profile.</div>
-        <?php else: ?>
-          <img src="<?php echo htmlspecialchars(farmer_img_src($farmer['profile_picture'] ?? '')); ?>" alt="Profile">
-          <div class="line title"><?php echo htmlspecialchars($farmer['farm_name'] ?: ('User #'.$selectedUID)); ?></div>
-          <div class="line"><?php echo htmlspecialchars(trim(($farmer['city']?:'') . ($farmer['country']?', '.$farmer['country']:''))); ?></div>
-          <div class="line">Phone: <?php echo htmlspecialchars($farmer['phone']); ?></div>
-          <div class="line">Gender: <?php echo htmlspecialchars($farmer['gender']); ?></div>
-          <div class="line">Farm size: <?php echo htmlspecialchars($farmer['farm_size']); ?></div>
-          <div class="line">Experience: <?php echo htmlspecialchars($farmer['years_experience']); ?> yrs</div>
-          <div class="line">Address: <?php echo htmlspecialchars(trim(($farmer['address_line1']??'').' '.($farmer['address_line2']??''))); ?></div>
-        <?php endif; ?>
-      </aside>
-    </div>
-  </main>
-</div>
+        <!-- ============== RIGHT: FARMER PROFILE ============== -->
+        <aside class="profile" aria-label="Farmer details">
+          <?php if (!$farmer): ?>
+            <div>Select a farmer to view profile.</div>
+          <?php else: ?>
+            <img src="<?php echo htmlspecialchars(farmer_img_src($farmer['profile_picture'] ?? '')); ?>" alt="Profile">
+            <div class="line title"><?php echo htmlspecialchars($farmer['farm_name'] ?: ('User #' . $selectedUID)); ?></div>
+            <div class="line"><?php echo htmlspecialchars(trim(($farmer['city'] ?: '') . ($farmer['country'] ? ', ' . $farmer['country'] : ''))); ?></div>
+            <div class="line">Phone: <?php echo htmlspecialchars($farmer['phone']); ?></div>
+            <div class="line">Gender: <?php echo htmlspecialchars($farmer['gender']); ?></div>
+            <div class="line">Farm size: <?php echo htmlspecialchars($farmer['farm_size']); ?></div>
+            <div class="line">Experience: <?php echo htmlspecialchars($farmer['years_experience']); ?> yrs</div>
+            <div class="line">Address: <?php echo htmlspecialchars(trim(($farmer['address_line1'] ?? '') . ' ' . ($farmer['address_line2'] ?? ''))); ?></div>
+          <?php endif; ?>
+        </aside>
+      </div>
+    </main>
+  </div>
 </body>
+
 </html>
