@@ -1,167 +1,161 @@
-/* profile.css */
+/* Profile — GiveForms-style UI (no HTML changes required).
+   Works with your existing classes from profile.css and adds a few optional ones.
+   Layout: left sidebar, main content with cards, right activity/notes column.
+*/
 
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  display: flex;
-  background: #eef1f5;
+:root {
+  --bg: #f3f5f8;
+  --surface: #ffffff;
+  --surface-2: #fafbfc;
+  --border: #e5e9f2;
+  --text: #0f172a;
+  --muted: #64748b;
+  --primary: #2563eb;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --radius: 12px;
+  --shadow: 0 6px 18px rgba(2, 6, 23, .06);
 }
 
-.profile-wrapper {
-  display: flex;
-  width: 100%;
-}
+/* ===== Page shell ===== */
+body { margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
+.profile-wrapper { display: flex; min-height: 100vh; width: 100%; }
 
-/* Sidebar styling */
-.sidebar {
-  width: 220px;
-  background-color: #2e3b4e;
-  color: white;
-  padding: 20px;
-  min-height: 100vh;
-}
+/* ===== Sidebar ===== */
+.sidebar { width: 240px; background: linear-gradient(180deg, #1f2937, #111827); color: #e5e7eb; padding: 20px 16px; position: sticky; top: 0; align-self: flex-start; min-height: 100vh; }
+.sidebar h2 { font-size: 18px; margin: 8px 10px 18px; color: #93c5fd; letter-spacing: .3px; }
+.sidebar ul { list-style: none; padding: 0; margin: 0; }
+.sidebar li { margin: 4px 0; }
+.sidebar a { display: flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; padding: 10px 12px; border-radius: 10px; transition: background .15s ease; }
+.sidebar a:hover, .sidebar a.active { background: rgba(255,255,255,.06); }
 
-.sidebar h2 {
-  font-size: 1.6rem;
-  margin-bottom: 1rem;
-  color: #a3d9a5;
-}
+/* ===== Main container ===== */
+.profile-container { flex: 1; padding: 26px; max-width: 1220px; margin: 0 auto; }
 
-.sidebar ul {
-  list-style: none;
-  padding: 0;
-}
+/* Header: identity on the left, KPI stats on the right */
+header { display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: center; margin-bottom: 18px; }
+.header-identity { display: flex; align-items: center; gap: 14px; }
+.header-identity .avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; box-shadow: var(--shadow); background: #e2e8f0; }
+.header-identity .name { font-weight: 800; font-size: 20px; letter-spacing: .2px; }
+.header-identity .email { color: var(--muted); font-size: 14px; }
 
-.sidebar ul li {
-  margin-bottom: 0.75rem;
-}
+.header-stats { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 12px; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px 14px; text-align: right; }
+.stat .value { font-size: 20px; font-weight: 800; line-height: 1; }
+.stat .label { color: var(--muted); font-size: 12px; margin-top: 4px; }
 
-.sidebar ul li a {
-  color: white;
-  text-decoration: none;
-  display: block;
-  padding: 8px;
-  border-radius: 6px;
-  transition: background 0.2s;
-}
+/* ===== Content two-column grid (main + aside) ===== */
+.content-grid { display: grid; grid-template-columns: 1fr 320px; gap: 18px; align-items: start; }
 
-.sidebar ul li a:hover,
-.sidebar ul li a.active {
-  background-color: #4e5d6c;
-}
+/* Cards */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+.card + .card { margin-top: 16px; }
+.card-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface-2); border-top-left-radius: var(--radius); border-top-right-radius: var(--radius); font-weight: 800; letter-spacing: .2px; }
+.card-body { padding: 14px 16px; }
+.badge { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--border); background: #ecfdf5; color: #065f46; }
+.badge.warning { background: #fff7ed; color: #9a3412; }
+.badge.active { background: #ecfdf5; color: #065f46; }
 
-/* Profile container */
-.profile-container {
-  flex-grow: 1;
-  padding: 2rem;
-}
+/* Key-value (Donor Details-like) table */
+.kv { display: grid; grid-template-columns: 180px 1fr; row-gap: 8px; column-gap: 16px; }
+.kv .k { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .6px; }
+.kv .v { font-weight: 600; }
 
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
+/* Simple list/table (Emails) */
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); font-size: 14px; }
+.table th { color: var(--muted); font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: .5px; }
+.table tr:hover td { background: #fafafb; }
 
-/* Edit button styling */
-#editBtn {
-  padding: 0.5rem 1rem;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
+/* Activity (right column) */
+.aside { display: grid; gap: 16px; }
+.timeline { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px 16px; }
+.timeline .item { display: grid; grid-template-columns: 22px 1fr auto; align-items: start; gap: 8px; padding: 8px 0; border-bottom: 1px solid #f1f3f7; }
+.timeline .item:last-child { border-bottom: none; }
+.timeline .dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; background: var(--success); }
+.timeline .dot.warn { background: var(--warning); }
+.timeline .meta { color: var(--muted); font-size: 12px; }
 
-#editBtn:hover {
-  background-color: #0056b3;
-}
+/* Notes */
+.notes { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px 16px; }
+.notes textarea { width: 100%; min-height: 120px; border: 1px solid var(--border); border-radius: 10px; padding: 10px; resize: vertical; }
+.notes .actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid #cfd6e4; background: var(--surface-2); font-weight: 700; cursor: pointer; }
+.btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
 
-/* Profile information styling */
-.profile-info {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+/* Forms inside cards */
+.info-item { display: flex; flex-direction: column; margin-bottom: 8px; }
+.info-item label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
+.info-item input, .info-item select { height: 38px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+.info-item input:disabled, .info-item select:disabled { background: #f3f4f6; }
+
+/* Profile picture block */
+.profile-pic-item { display: flex; align-items: center; gap: 12px; }
+.profile-pic-item img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; box-shadow: var(--shadow); background: #e2e8f0; }
+
+/* Utility spacing */
+.mt-0 { margin-top: 0; }
+.mb-0 { margin-bottom: 0; }
+
+/* ===== Responsive ===== */
+@media (max-width: 1140px) {
+  .content-grid { grid-template-columns: 1fr; }
+  .aside { order: 2; }
+}
+@media (max-width: 720px) {
+  .kv { grid-template-columns: 1fr; }
+  .header-stats { grid-auto-flow: row; grid-auto-columns: unset; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+/* === PROFILE FORM GRID (pair fields side-by-side) === */
+#profileForm {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-gap: 1.5rem;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 16px 20px;
+  align-items: start;
 }
 
-/* Styling for each input block */
-.info-item {
-  display: flex;
-  flex-direction: column;
-}
+/* By default, each block spans full width */
+#profileForm .info-item { grid-column: 1 / -1; }
 
-.info-item label {
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-}
+/* Row 1: Farmer ID | Name */
+#profileForm .info-item:has(#farmerID),
+#profileForm .info-item:has(#name) { grid-column: span 6; }
 
-.info-item input,
-.info-item select {
-  padding: 0.75rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
+/* Row 2: Email | Phone */
+#profileForm .info-item:has(#email),
+#profileForm .info-item:has(#phone) { grid-column: span 6; }
 
-.info-item input:disabled,
-.info-item select:disabled {
-  background: #e9ecef;
-}
+/* Row 3–4: Address 1 & Address 2 full width */
+#profileForm .info-item:has(#address_line1),
+#profileForm .info-item:has(#address_line2) { grid-column: 1 / -1; }
 
-/* Ensure the Farmer ID field is the same as others */
-.info-item input#farmerID {
-  background: #f8f9fa;
-  font-weight: bold;
-}
+/* Row 5: City | State | Postal Code */
+#profileForm .info-item:has(#city) { grid-column: span 6; }
+#profileForm .info-item:has(#state) { grid-column: span 3; }
+#profileForm .info-item:has(#postal_code) { grid-column: span 3; }
 
-/* Adjust spacing for smaller screens */
-@media (max-width: 768px) {
-  .profile-info {
-    grid-template-columns: 1fr;
-  }
-}
+/* Row 6: Country | DOB | Gender */
+#profileForm .info-item:has(#country) { grid-column: span 6; }
+#profileForm .info-item:has(#date_of_birth) { grid-column: span 3; }
+#profileForm .info-item:has(#gender) { grid-column: span 3; }
 
+/* Row 7: Farm Name | Farm Location */
+#profileForm .info-item:has(#farm_name),
+#profileForm .info-item:has(#farm_location) { grid-column: span 6; }
 
-/* profile.css */
+/* Row 8: Farm Size | Years Experience */
+#profileForm .info-item:has(#farm_size),
+#profileForm .info-item:has(#years_experience) { grid-column: span 6; }
 
-body { margin: 0; font-family: Arial, sans-serif; display: flex; background: #eef1f5; }
-.profile-wrapper { display: flex; width: 100%; }
-/* Sidebar styling omitted for brevity */
-.profile-container { flex-grow: 1; padding: 2rem; }
-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-#editBtn { padding: 0.5rem 1rem; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-#editBtn:hover { background-color: #0056b3; }
+/* Row 9: Farming Type full width (change to span 6 if you want it paired) */
+#profileForm .info-item:has(#farming_type) { grid-column: 1 / -1; }
 
-.profile-info {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-gap: 1.5rem;
-}
-.info-item { display: flex; flex-direction: column; }
-.info-item label { font-weight: bold; margin-bottom: 0.5rem; }
-.info-item input,
-.info-item select { padding: 0.75rem; border: 1px solid #ccc; border-radius: 4px; }
-.info-item input:disabled,
-.info-item select:disabled { background: #e9ecef; }
+/* Actions row always full width */
+#profileForm .actions,
+#profileForm .form-actions { grid-column: 1 / -1; }
 
-.profile-pic-item { grid-column: 1 / span 2; display: flex; flex-direction: column; align-items: flex-start; }
-.profile-pic-item img {
-  width: 120px;
-  height: 120px;
-  object-fit: cover;
-  border-radius: 50%;
-  margin-bottom: 0.5rem;
-  background: #f0f0f0;
-}
-.profile-pic-item input[type="file"] { padding: 0.25rem; }
-
-@media (max-width: 768px) {
-  .profile-info { grid-template-columns: 1fr; }
+/* Mobile fallback: single column */
+@media (max-width: 900px) {
+  #profileForm { grid-template-columns: 1fr; }
+  #profileForm .info-item { grid-column: 1 / -1 !important; }
 }

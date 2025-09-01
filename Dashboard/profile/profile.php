@@ -13,7 +13,8 @@ if (!isset($_SESSION['user_id'])) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>My Profile | CropCast</title>
-  <link rel="stylesheet" href="profile.css" />
+  <link rel="stylesheet" href="profile.css?v=4">
+
 </head>
 <body>
   <div class="profile-wrapper">
@@ -100,6 +101,7 @@ if (!isset($_SESSION['user_id'])) {
             <option value="Other">Other</option>
           </select>
         </div>
+        <!--
         <div class="info-item">
           <label for="farm_name">Farm Name</label>
           <input type="text" id="farm_name" name="farm_name" disabled />
@@ -108,10 +110,12 @@ if (!isset($_SESSION['user_id'])) {
           <label for="farm_size">Farm Size</label>
           <input type="number" step="0.01" id="farm_size" name="farm_size" disabled />
         </div>
+        -->
         <div class="info-item">
           <label for="years_experience">Years Experience</label>
           <input type="number" id="years_experience" name="years_experience" disabled />
         </div>
+        
       </form>
     </div>
   </div>
