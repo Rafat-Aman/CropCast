@@ -1,31 +1,67 @@
 <?php
-// dashboard.php — PHP + CSS only (no JS), with Total Visits KPI
-// Assumes main.php sets $conn = new mysqli(...)
+// dashboard.php — PHP + CSS only (no JS), includes Total Visits KPI + admin greeting/photo
 
 session_start();
-require_once __DIR__ . '/../../../main.php';
+require_once __DIR__ . '../../../../main.php'; // must set $conn = new mysqli(...)
 
-// ---- Fetch KPIs ----
+/* ---------- Helpers ---------- */
+function h($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 function fetch_count(mysqli $conn, string $sql): int {
-    $res = $conn->query($sql);
-    if (!$res) return 0;
-    $row = $res->fetch_row();
-    return (int)($row[0] ?? 0);
+  $res = $conn->query($sql);
+  if (!$res) return 0;
+  $row = $res->fetch_row();
+  return (int)($row[0] ?? 0);
 }
 
+/* ---------- KPIs ---------- */
 $totalUsers   = fetch_count($conn, "SELECT COUNT(*) FROM users");
 $totalFarmers = fetch_count($conn, "SELECT COUNT(*) FROM farmer");
 $totalFarms   = fetch_count($conn, "SELECT COUNT(*) FROM farm");
-
-/* New KPI — Total Visits:
-   You asked specifically for 'visite.userID counts'.
-   This counts the number of rows with a userID (i.e., total visits recorded). */
 $totalVisits  = fetch_count($conn, "SELECT COUNT(userID) FROM visite");
 
-// (Optional) identify current admin for the top-right chip if needed
-$adminName = isset($_SESSION['admin_name']) ? $_SESSION['admin_name'] : 'Admin';
+/* ---------- Admin greeting + photo ---------- */
+/* We try session first; if not present, fall back to users.name by userID */
+$adminID    = isset($_SESSION['userID']) ? (int)$_SESSION['userID'] : 0;
+// $adminName  = $_SESSION['admin_name'] ?? $_SESSION['name'] ?? 'Admin';
+// Fetch greeting + avatar path
 
-function h($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
+
+$adminPhoto = null;
+if ($adminID) {
+  $stmt = $conn->prepare("
+    SELECT U.name, F.profile_picture
+    FROM users U
+    JOIN farmer F ON F.userID = U.userID
+    WHERE U.userID = ?
+  ");
+  $stmt->bind_param('i', $adminID);
+  $stmt->execute();
+  $stmt->bind_result($name, $picPath);
+  if ($stmt->fetch()) {
+    if (!$adminName && $name) $adminName = $name;
+    $adminPhoto = $picPath
+      ? '/ProjectFolder/Dashboard/profile/' . $picPath
+      : '/ProjectFolder/Dashboard/images/default-avatar.png';
+  }
+  $stmt->close();
+}
+
+
+
+if ($adminID && !$adminPhoto) {
+  // Try optional photo column; if it doesn't exist, we just ignore.
+  if ($stmt = $conn->prepare("SELECT name FROM users WHERE userID = ? LIMIT 1")) {
+    $stmt->bind_param('i', $adminID);
+    $stmt->execute();
+    $stmt->bind_result($nm);
+    if ($stmt->fetch() && !$adminName) $adminName = $nm ?: $adminName;
+    $stmt->close();
+  }
+}
+// Fallback avatar if none in session
+if (!$adminPhoto) {
+  $adminPhoto = "https://i.pravatar.cc/100?img=3";
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -33,34 +69,37 @@ function h($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
   <meta charset="utf-8" />
   <title>Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="dashboard.css?v=2" />
+  <!-- Polished CSS (safe drop-in) -->
+  <link rel="stylesheet" href="dashboard.css" />
 </head>
 <body>
 <div class="dashboard-wrapper">
-  <!-- If you include an admin sidebar, keep it here -->
   <?php @include __DIR__ . '/../../partials/sidebar.php'; ?>
   <main class="app">
-    <!-- Topbar (kept structure/classes to avoid breaking layout) -->
+    <!-- Topbar -->
     <div class="topbar">
       <div class="brand">
         <button class="ghost-btn" aria-label="Menu">☰</button>
         <span>CropCast Admin</span>
       </div>
-      <div class="search" role="search">
-        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="#64748b" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16a6.471 6.471 0 004.23-1.57l.27.28v.79L20 21.5 21.5 20 15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+
+      <!-- Search: INPUT ONLY (no button) -->
+      <div class="search" role="search" aria-label="Quick search">
         <input type="text" placeholder="Search…" />
       </div>
+
+      <!-- Admin greeting + profile picture -->
       <div class="top-actions">
-        <button class="icon-btn" title="Notifications">🔔</button>
-        <div class="user-chip">
-          <img src="https://i.pravatar.cc/100?img=12" alt="" />
-          <span><?= h($adminName) ?></span>
+       
+         <div class="user-chip">
+          <img src="<?= h($adminPhoto) ?>" alt="Profile picture" />
+          
         </div>
       </div>
     </div>
 
     <div class="content">
-      <!-- KPI cards (layout/classes unchanged). New Visits card added -->
+      <!-- KPI cards -->
       <section class="kpi-grid">
         <a href="users.php" class="kpi-card grad-pink" aria-label="Total users">
           <span class="kpi-icon">👥</span>
@@ -86,7 +125,7 @@ function h($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
           </div>
         </a>
 
-        <!-- NEW: Total Visits -->
+        <!-- Total Visits from visite.userID count -->
         <div class="kpi-card grad-lime" aria-label="Total visits">
           <span class="kpi-icon">👀</span>
           <div class="kpi-meta">
@@ -96,8 +135,7 @@ function h($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
         </div>
       </section>
 
-      <!-- Charts section removed — but keep containers if your layout expects them.
-           You can keep these two cards as placeholders so nothing else breaks. -->
+      <!-- Optional placeholders if your layout expects the charts section -->
       <section class="charts-grid">
         <div class="card">
           <div class="card-head">
@@ -107,42 +145,14 @@ function h($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
               <span><span class="dot dot-blue"></span>Services</span>
             </div>
           </div>
-          <div style="padding:12px;color:#64748b;">
-            Charts are disabled on this dashboard. (JS removed)
-          </div>
+          <div class="card-empty">Charts disabled (no JS).</div>
         </div>
 
         <div class="card">
           <div class="card-head"><h4>Breakdown</h4></div>
-          <div style="padding:12px;color:#64748b;">
-            Charts are disabled on this dashboard. (JS removed)
-          </div>
+          <div class="card-empty">Charts disabled (no JS).</div>
         </div>
       </section>
-
-      <!-- Keep any remaining sections/tables your page already uses -->
-      <!-- Example: Recent items table placeholder (optional) -->
-      <!--
-      <section class="grid-2">
-        <div class="card">
-          <div class="card-head"><h4>Recent Activity</h4></div>
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead><tr><th>ID</th><th>Item</th><th>Date</th></tr></thead>
-              <tbody>
-                <tr><td>—</td><td>No data</td><td>—</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div class="card side-card">
-          <div class="card-head"><h4>Top Regions</h4></div>
-          <ul class="country-list">
-            <li><span>—</span><span>—</span></li>
-          </ul>
-        </div>
-      </section>
-      -->
     </div>
   </main>
 </div>

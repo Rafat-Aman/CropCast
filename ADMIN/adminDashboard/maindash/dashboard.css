@@ -1,70 +1,89 @@
-/* Base layout preserved from your sidebar */
+/* Polished dashboard CSS (keeps your original class names for safety)
+   - No JS dependencies
+   - Tweaked spacing, better topbar greeting/photo, improved cards
+*/
+
+/* Shell */
 body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f3f5f9;color:#0f172a}
 .dashboard-wrapper{display:flex;min-height:100vh}
-.sidebar{width:220px;background:#2e3b4e;color:#fff;padding:20px}
-.sidebar h2{margin:0 0 20px;font-size:1.4rem;color:#a3d9a5}
-.sidebar ul{list-style:none;margin:0;padding:0}
-.sidebar li{margin-bottom:12px}
-.sidebar a{color:#fff;text-decoration:none;display:block;padding:10px;border-radius:8px}
-.sidebar a:hover,.sidebar a.active{background:#4e5d6c}
 
-/* Main app column */
+/* Sidebar (inherited from your admin include) remains untouched */
+
+/* App column */
 .app{flex:1;display:flex;flex-direction:column}
 
 /* Topbar */
-.topbar{display:flex;align-items:center;gap:16px;background:#fff;border-bottom:1px solid #e5e7eb;padding:10px 16px}
+.topbar{
+  display:flex;align-items:center;gap:16px;background:#fff;
+  border-bottom:1px solid #e5e7eb;padding:10px 16px
+}
 .brand{display:flex;align-items:center;gap:10px;font-weight:700}
 .ghost-btn{background:transparent;border:0;font-size:1rem;cursor:pointer;color:#334155}
-.search{display:flex;align-items:center;gap:8px;background:#f1f5f9;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;flex:1;max-width:560px}
+
+/* Search: input only */
+.search{
+  display:flex;align-items:center;gap:8px;background:#f1f5f9;border:1px solid #e5e7eb;
+  border-radius:8px;padding:8px 10px;flex:1;max-width:560px
+}
 .search input{border:0;background:transparent;outline:none;width:100%}
-.top-actions{display:flex;align-items:center;gap:10px}
-.icon-btn{background:#fff;border:1px solid #e5e7eb;border-radius:8px;width:38px;height:38px;display:grid;place-items:center;cursor:pointer}
-.user-chip{display:flex;align-items:center;gap:10px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:20px;padding:4px 10px}
+
+/* Greeting + profile */
+.top-actions{display:flex;align-items:center;gap:12px}
+.greet{color:#475569}
+.user-chip{
+  display:flex;align-items:center;gap:10px;background:#f8fafc;border:1px solid #e5e7eb;
+  border-radius:20px;padding:4px 10px
+}
 .user-chip img{width:28px;height:28px;border-radius:50%;object-fit:cover}
 
+/* Content wrap */
 .content{padding:18px}
 
-/* KPI grid & cards */
-.kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(180px,1fr));gap:16px;margin:14px 0 22px}
-.kpi-card{display:flex;align-items:center;gap:12px;padding:16px;border-radius:12px;color:#fff;box-shadow:0 6px 16px rgba(0,0,0,.12);text-decoration:none;transition:transform .15s ease, box-shadow .15s ease}
+/* KPI grid */
+.kpi-grid{
+  display:grid;grid-template-columns:repeat(4,minmax(180px,1fr));gap:16px;margin:14px 0 22px
+}
+.kpi-card{
+  display:flex;align-items:center;gap:12px;padding:16px;border-radius:12px;color:#fff;
+  box-shadow:0 6px 16px rgba(0,0,0,.12);text-decoration:none;transition:transform .15s ease, box-shadow .15s ease
+}
 .kpi-card:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(0,0,0,.18)}
 .kpi-icon{font-size:1.6rem;opacity:.9}
 .kpi-meta p{margin:0 0 6px;opacity:.9}
 .kpi-meta h3{margin:0;font-size:1.6rem}
 
-/* Gradients like the screenshot */
+/* Gradients */
 .grad-pink{background:linear-gradient(135deg,#fb5aa0,#a855f7)}
 .grad-green{background:linear-gradient(135deg,#34d399,#10b981)}
 .grad-orange{background:linear-gradient(135deg,#fb923c,#f43f5e)}
 .grad-lime{background:linear-gradient(135deg,#a3e635,#22c55e)}
 
-/* Cards & grids */
+/* Cards / charts placeholders */
 .card{background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.08);padding:16px}
 .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .card-head h4{margin:0;font-size:1rem}
 .legend{display:flex;align-items:center;gap:12px;color:#64748b}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
 .dot-green{background:#22c55e}.dot-blue{background:#3b82f6}
+.card-empty{padding:24px;color:#64748b}
 
 .charts-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px}
-.grid-2{display:grid;grid-template-columns:2fr 1fr;gap:16px}
 
-/* Table */
+/* Table & side list (if used later) */
 .table-wrap{overflow:auto}
 .data-table{width:100%;border-collapse:separate;border-spacing:0}
 .data-table thead th{background:#0f172a;color:#fff;padding:10px;font-weight:600;text-align:left}
 .data-table tbody td{background:#fff;border-bottom:1px solid #e5e7eb;padding:10px}
 .data-table tbody tr:hover td{background:#f8fafc}
-
-/* Side list */
 .side-card .country-list{list-style:none;margin:0;padding:0}
 .side-card .country-list li{display:flex;justify-content:space-between;padding:10px;border-bottom:1px dashed #e5e7eb}
 
 /* Responsive */
 @media (max-width:1200px){
-  .charts-grid,.grid-2{grid-template-columns:1fr}
+  .charts-grid{grid-template-columns:1fr}
   .kpi-grid{grid-template-columns:repeat(2,1fr)}
 }
 @media (max-width:700px){
   .kpi-grid{grid-template-columns:1fr}
+  .search{display:none} /* optional: hide search on very small screens */
 }
