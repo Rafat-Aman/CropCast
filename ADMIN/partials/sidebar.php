@@ -318,24 +318,18 @@ function kts_active(string $needle, string $haystack): string
   <ul class="kts-nav">
     <li><a class="kts-link <?php echo kts_active('/admin/adminDashboard/maindash/', $currentUri); ?>" href="<?php echo $BASE; ?>/admin/adminDashboard/maindash/dashboard.php" title="Dashboard"><span class="kts-icon">📊</span><span class="kts-label">Dashboard</span></a></li>
     <li><a class="kts-link <?php echo kts_active('/admin/adminDashboard/farms/', $currentUri); ?>" href="<?php echo $BASE; ?>/admin/adminDashboard/farms/farms.php" title="Farms"><span class="kts-icon">👤</span><span class="kts-label">Profile</span></a></li>
-    <li><a class="kts-link <?php echo kts_active('/admin/adminDashboard/feedback/', $currentUri); ?>" href="<?php echo $BASE; ?>/admin/adminDashboard/feedback/feedback.php" title="Fields"><span class="kts-icon">🌱</span><span class="kts-label">Fields</span></a></li>
-    <!--
-    <li><a class="kts-link <?php echo kts_active('/Dashboard/crop/', $currentUri); ?>" href="<?php echo $BASE; ?>/Dashboard/crop/crop.php" title="Crop"><span class="kts-icon">🌾</span><span class="kts-label">Crop</span></a></li>
-    <li><a class="kts-link <?php echo kts_active('/Dashboard/feedback/', $currentUri); ?>" href="<?php echo $BASE; ?>/Dashboard/feedback/feedback.php" title="Feedback"><span class="kts-icon">💬</span><span class="kts-label">Feedback</span></a></li>
-    <li><a class="kts-link <?php echo kts_active('/Dashboard/soil/', $currentUri); ?>" href="<?php echo $BASE; ?>/Dashboard/soil/soil.php" title="Soil Data"><span class="kts-icon">🧪</span><span class="kts-label">Soil Data</span></a></li>
-    <li><a class="kts-link <?php echo kts_active('/Dashboard/reports/', $currentUri); ?>" href="<?php echo $BASE; ?>/Dashboard/reports/reports.php" title="Reports"><span class="kts-icon">📄</span><span class="kts-label">Reports</span></a></li>
-    <li><a class="kts-link <?php echo kts_active('/Dashboard/settings/', $currentUri); ?>" href="<?php echo $BASE; ?>/Dashboard/settings/settings.php" title="Settings"><span class="kts-icon">⚙️</span><span class="kts-label">Settings</span></a></li>
-     -->
+    <li><a class="kts-link <?php echo kts_active('/admin/adminDashboard/feedback/', $currentUri); ?>" href="<?php echo $BASE; ?>/admin/adminDashboard/feedback/feedback.php" title="Feedbaack"><span class="kts-icon">💬</span><span class="kts-label">Fields</span></a></li>
   </ul>
 
   <!-- Bottom controls -->
   <div class="kts-bottom">
-    <button type="button" class="kts-btn" id="ktsPinBtn" title="Pin sidebar">
-      <span class="kts-icon">📌</span><span class="kts-label">Pin sidebar</span>
-    </button>
     <a class="kts-logout" href="<?php echo $BASE; ?>/logout.php" title="Logout">
       <span class="kts-icon">🚪</span><span class="kts-label">Logout</span>
     </a>
+    <button type="button" class="kts-btn" id="ktsPinBtn" title="Pin sidebar">
+      <span class="kts-icon">📌</span><span class="kts-label"></span>
+    </button>
+    
   </div>
 </aside>
 
@@ -378,12 +372,12 @@ function kts_active(string $needle, string $haystack): string
     function setPinned(state) {
       if (state) {
         body.classList.add('kts-sidebar-expanded');
-        pinBtn.innerHTML = '<span class="kts-icon">📌</span><span class="kts-label">Unpin sidebar</span>';
-        pinBtn.title = 'Unpin sidebar';
+        pinBtn.innerHTML = '<span class="kts-icon">📌</span><span class="kts-label"></span>';
+        pinBtn.title = '';
       } else {
         body.classList.remove('kts-sidebar-expanded');
-        pinBtn.innerHTML = '<span class="kts-icon">📌</span><span class="kts-label">Pin sidebar</span>';
-        pinBtn.title = 'Pin sidebar';
+        pinBtn.innerHTML = '<span class="kts-icon">📌</span><span class="kts-label"></span>';
+        pinBtn.title = '';
       }
     }
   })();
