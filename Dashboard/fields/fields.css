@@ -1,55 +1,10 @@
-/* =========================
-   Sidebar + Layout (fixed)
-   ========================= */
+/* =========================================================
+   Fields page (light theme) — sidebar CSS removed
+   The new shared sidebar partial manages layout/margins.
+   Based on your prior Fields styles, minus the old sidebar rules.
+   ========================================================= */
 
-/* Make the sidebar fixed and full-height */
-.sidebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 220px;
-  height: 100vh;
-  background-color: #2e3b4e;
-  color: #fff;
-  padding: 20px;
-  overflow-y: auto;
-}
-
-/* Brand/title in sidebar */
-.sidebar h2 {
-  font-size: 1.6rem;
-  margin: 0 0 1rem;
-  color: #a3d9a5;
-}
-
-/* Sidebar nav */
-.sidebar ul { list-style: none; margin: 0; padding: 0; }
-.sidebar ul li { margin-bottom: 0.75rem; }
-.sidebar ul li a {
-  color: #fff;
-  text-decoration: none;
-  display: block;
-  padding: 8px;
-  border-radius: 6px;
-  transition: background .2s;
-}
-.sidebar ul li a:hover,
-.sidebar ul li a.active { background-color: #4e5d6c; }
-
-/* Shift the main content so it doesn't slide under the fixed sidebar */
-body {
-  margin: 0;
-  padding: 0;
-  /* leave room for the fixed 220px sidebar */
-  margin-left: 220px;
-  background: #eef2f7;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
-  color: #1f2937;
-}
-
-/* =========================
-   CropCast light UI styles
-   ========================= */
+/* ---------- Theme tokens ---------- */
 :root{
   --bg:        #eef2f7;    /* app background */
   --surface:   #ffffff;    /* cards / panels */
@@ -69,15 +24,22 @@ body {
 
 * { box-sizing: border-box; }
 
-/* ---------- layout for content area ---------- */
-.container {
-  /* full-width content but with comfortable max width */
-  max-width: 1080px;
-  margin: 28px auto;
-  padding: 0 20px;
-  background: transparent;
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
 }
 
+/* ---------- Main content wrapper (leaves space for sidebar via body class) ---------- */
+.container {
+  max-width: 1080px;       /* comfortable width */
+  margin: 28px auto;
+  padding: 0 20px;
+}
+
+/* ---------- Header ---------- */
 .header { margin-bottom: 18px; }
 .header h1 {
   margin: 0 0 6px;
@@ -91,7 +53,7 @@ body {
   font-size: 14px;
 }
 
-/* ---------- panels / cards ---------- */
+/* ---------- Panels / cards ---------- */
 .panel {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -106,7 +68,7 @@ body {
   font-weight: 600;
 }
 
-/* ---------- form ---------- */
+/* ---------- Forms ---------- */
 .form { display: grid; gap: 14px; }
 .form-row { display: grid; gap: 6px; }
 
@@ -133,7 +95,7 @@ input:focus, select:focus {
   background: #fff;
 }
 
-/* ---------- buttons ---------- */
+/* ---------- Buttons ---------- */
 .btn {
   appearance: none;
   border: 1px solid transparent;
@@ -159,7 +121,7 @@ input:focus, select:focus {
   background: var(--danger-h);
 }
 
-/* ---------- list + farm cards ---------- */
+/* ---------- List + field cards ---------- */
 .list { display: grid; gap: 12px; }
 
 .card {
@@ -177,7 +139,7 @@ input:focus, select:focus {
 .card-main strong { font-weight: 700; }
 .card-actions { display: flex; gap: 8px; }
 
-/* ---------- messages / empty states ---------- */
+/* ---------- Helper messages ---------- */
 .msg { margin-top: 8px; color: var(--muted); font-size: 13px; }
 .empty {
   color: var(--muted);
@@ -185,47 +147,14 @@ input:focus, select:focus {
   padding: 10px 0;
 }
 
-/* =========================
-   Responsive behavior
-   ========================= */
+/* ---------- Responsive ---------- */
 @media (max-width: 1024px) {
-  /* allow content more space; keep fixed sidebar */
   .container { margin: 20px auto; padding: 0 16px; }
 }
-
 @media (max-width: 860px) {
-  /* Turn the sidebar into a top bar and remove fixed layout */
-  .sidebar {
-    position: static;
-    width: 100%;
-    height: auto;
-    border-bottom: 1px solid rgba(255,255,255,.1);
-  }
-  body { margin-left: 0; }
   .container { margin: 16px auto; padding: 0 14px; }
   .header h1 { font-size: 22px; }
   .panel { padding: 14px; }
   .card { grid-template-columns: 1fr; }
   .btn { width: 100%; }
-}
-/* ===== Force-correct highlight for the Fields page (URL-based) ===== */
-
-/* 1) Neutralize any wrong .active highlight */
-.sidebar ul li a.active:not([href*="fields"]):not([href*="fields.php"]) {
-  background-color: transparent !important;
-}
-
-/* 2) Positively highlight the Fields nav item when we're on fields.php */
-.sidebar ul li a[href*="fields"],
-.sidebar ul li a[href*="fields.php"] {
-  background-color: #4e5d6c !important;
-  color: #fff !important;
-}
-
-/* (Optional) If you also have a Soil page, keep its highlight only on Soil pages */
-.sidebar ul li a.active[href*="soil"],
-.sidebar ul li a.active[href*="soiltype"],
-.sidebar ul li a.active[href*="soil-data"],
-.sidebar ul li a.active[href*="soil.php"] {
-  background-color: #4e5d6c !important;
 }
