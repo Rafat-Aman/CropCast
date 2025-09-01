@@ -1,160 +1,70 @@
-/* =========================================================
-   Fields page (light theme) — sidebar CSS removed
-   The new shared sidebar partial manages layout/margins.
-   Based on your prior Fields styles, minus the old sidebar rules.
-   ========================================================= */
+/* Fields — styles for fields.php
+   Target layout (per sketch):
+   ┌───────── left column ─────────┐ ┌──────────── right column ───────────┐
+   │  Add Farms (panel + form)     │ │  Your farms (title + 2-col grid)    │
+   │  Details dropdowns + Add btn  │ │  Rounded cards with Edit/Delete      │
+   └───────────────────────────────┘ └──────────────────────────────────────┘
+   Usage: ensure <body class="fields-page"> in fields.php and include this file.
+*/
 
-/* ---------- Theme tokens ---------- */
-:root{
-  --bg:        #eef2f7;    /* app background */
-  --surface:   #ffffff;    /* cards / panels */
-  --text:      #1f2937;    /* primary text */
-  --muted:     #6b7280;    /* secondary text */
-  --border:    #e5e7eb;    /* subtle borders */
-  --input:     #f9fafb;    /* input background */
-  --focus:     #3b82f6;    /* blue focus ring */
-  --primary:   #0d6efd;    /* button primary */
-  --primary-h: #0b5ed7;    /* primary hover */
-  --danger:    #dc3545;    /* delete button */
-  --danger-h:  #bb2d3b;
-  --shadow:    0 6px 18px rgba(31,41,55,0.08);
-  --radius-sm: 10px;
-  --radius-md: 14px;
-}
+/* =================== Scope & reset =================== */
+.fields-page { --bg:#f6f7fb; --surface:#ffffff; --surface-2:#f7f9fc; --border:#e6e8f0; --text:#0f172a; --muted:#6b7280; --primary:#2563eb; --radius:16px; --shadow:0 10px 28px rgba(2,6,23,.06); }
+.fields-page * { box-sizing: border-box; }
+.fields-page a { color: inherit; text-decoration: none !important; }
+.fields-page .panel a, .fields-page .panel a:link, .fields-page .panel a:visited { text-decoration: none !important; color: inherit !important; }
 
-* { box-sizing: border-box; }
+/* =================== Page container =================== */
+.fields-page .container { max-width: 1200px; margin: 0 auto; padding: 28px 22px 64px; }
+.fields-page .page-title { margin: 0 0 10px; font-size: clamp(24px,2.4vw,34px); font-weight: 800; letter-spacing: -.02em; }
+.fields-page .subtitle { margin: 0 0 18px; color: var(--muted); }
 
-html, body { height: 100%; }
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
-}
+/* =================== Two column layout =================== */
+.fields-page .layout { display: grid; grid-template-columns: 1fr; gap: 22px; align-items: start; }
+@media (min-width: 1000px) { .fields-page .layout { grid-template-columns: 320px 1fr; gap: 26px; } }
 
-/* ---------- Main content wrapper (leaves space for sidebar via body class) ---------- */
-.container {
-  max-width: 1080px;       /* comfortable width */
-  margin: 28px auto;
-  padding: 0 20px;
-}
+/* =================== Panels =================== */
+.fields-page .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.fields-page .panel-header { background: var(--surface-2); border-bottom: 1px solid var(--border); padding: 12px 16px; font-weight: 800; letter-spacing: .2px; }
+.fields-page .panel-body { padding: 16px; }
 
-/* ---------- Header ---------- */
-.header { margin-bottom: 18px; }
-.header h1 {
-  margin: 0 0 6px;
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: .2px;
-}
-.subtitle {
-  margin: 0;
-  color: var(--muted);
-  font-size: 14px;
-}
+/* Left panel specific: sticky and form look like the drawing */
+.fields-page .add-panel { position: sticky; top: 18px; align-self: start; }
+.fields-page .form-grid { display: grid; gap: 12px; }
+.fields-page .field label { display: block; font-weight: 700; font-size: .93rem; margin-bottom: 6px; color: #0b1220; }
+.fields-page .field select,
+.fields-page .field input,
+.fields-page .field textarea { width: 100%; height: 38px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: #fff; color: var(--text); }
+.fields-page .field textarea { height: auto; min-height: 84px; resize: vertical; }
 
-/* ---------- Panels / cards ---------- */
-.panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow);
-  padding: 18px;
-  margin-bottom: 20px;
-}
-.panel > h2 {
-  margin: 0 0 12px;
-  font-size: 18px;
-  font-weight: 600;
-}
+/* Add button full width */
+.fields-page .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid transparent; font-weight: 700; cursor: pointer; }
+.fields-page .btn-primary { width: 100%; background: var(--primary); color: #fff; }
+.fields-page .btn-primary:hover { filter: brightness(.95); }
 
-/* ---------- Forms ---------- */
-.form { display: grid; gap: 14px; }
-.form-row { display: grid; gap: 6px; }
+/* =================== Right: Your farms =================== */
+.fields-page .right-panel .panel-header { display: flex; align-items: center; justify-content: space-between; }
+.fields-page .farms-grid { padding: 16px; display: grid !important; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 720px) { .fields-page .farms-grid { grid-template-columns: repeat(2, minmax(260px, 1fr)) !important; } }
 
-label {
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 600;
-}
+/* Farm card (rounded rectangle, content centered, edit/delete at bottom) */
+.fields-page .farm-card { display: flex; flex-direction: column; border-radius: 22px; border: 2px solid #d7dbe6; background: #fff; min-height: 140px; padding: 14px; transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease; }
+.fields-page .farm-card:hover { transform: translateY(-1px); border-color: #bfd3ff; box-shadow: 0 12px 20px rgba(2,6,23,.06); }
+.fields-page .farm-name { font-weight: 800; text-align: center; margin-top: 8px; }
+.fields-page .farm-meta { color: var(--muted); text-align: center; font-size: .92rem; }
 
-input, select {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--input);
-  color: var(--text);
-  outline: none;
-  transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
-}
-input::placeholder { color: #9ca3af; }
-input:focus, select:focus {
-  border-color: var(--focus);
-  box-shadow: 0 0 0 3px rgba(59,130,246,.2);
-  background: #fff;
-}
+/* Edit/Delete row */
+.fields-page .card-actions { margin-top: auto; display: flex; justify-content: center; gap: 10px; padding-top: 10px; }
+.fields-page .btn-outline { height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid #cfd6e4; background: var(--surface-2); font-weight: 700; font-size: .9rem; }
+.fields-page .btn-outline:hover { border-color: #b9c1d4; }
+.fields-page .btn-danger { border-color: #f3b4b4; background: #fff4f4; color: #a11a1a; }
 
-/* ---------- Buttons ---------- */
-.btn {
-  appearance: none;
-  border: 1px solid transparent;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-  cursor: pointer;
-  background: var(--primary);
-  color: #fff;
-  transition: background-color .15s ease, transform .02s ease;
-}
-.btn:hover { background: var(--primary-h); }
-.btn:active { transform: translateY(1px); }
+/* Make sure card content isn't treated as separate links */
+.fields-page .farm-card a, .fields-page .farm-card a * { text-decoration: none !important; }
 
-.btn-danger {
-  background: var(--danger);
-}
-.btn-danger:hover {
-  background: var(--danger-h);
-}
+/* =================== Utilities =================== */
+.fields-page .muted { color: var(--muted); }
+.fields-page .spacer { height: 8px; }
 
-/* ---------- List + field cards ---------- */
-.list { display: grid; gap: 12px; }
-
-.card {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 12px;
-  padding: 14px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow);
-}
-.card-main > div { margin: 2px 0; }
-.card-main strong { font-weight: 700; }
-.card-actions { display: flex; gap: 8px; }
-
-/* ---------- Helper messages ---------- */
-.msg { margin-top: 8px; color: var(--muted); font-size: 13px; }
-.empty {
-  color: var(--muted);
-  font-style: italic;
-  padding: 10px 0;
-}
-
-/* ---------- Responsive ---------- */
-@media (max-width: 1024px) {
-  .container { margin: 20px auto; padding: 0 16px; }
-}
-@media (max-width: 860px) {
-  .container { margin: 16px auto; padding: 0 14px; }
-  .header h1 { font-size: 22px; }
-  .panel { padding: 14px; }
-  .card { grid-template-columns: 1fr; }
-  .btn { width: 100%; }
-}
+/* Optional: if you render the sidebar column inside the same grid,
+   ensure it doesn't shrink on narrow screens (but hides to 1-col). */
+@media (max-width: 999px){ .fields-page .add-panel { position: static; } }
