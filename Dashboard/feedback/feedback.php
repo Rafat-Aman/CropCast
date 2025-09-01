@@ -36,13 +36,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message'])) {
         if (mb_strlen($message) > 4000) {
             $message = mb_substr($message, 0, 4000);
         }
-        $stmt = $conn->prepare("INSERT INTO feedback (userID, date, message, admin_reply) VALUES (?, NOW(), ?, NULL)");
+        // Insert into new message table
+        $stmt = $conn->prepare("INSERT INTO message (SID, RID, text) VALUES (?, ?, ?)");
         if ($stmt === false) {
             http_response_code(500);
             $flash = "Prepare failed: " . htmlspecialchars($conn->error);
             $flash_class = "err";
         } else {
-            $stmt->bind_param("is", $userID, $message);
+            $rid = 17; // use 0 (or actual admin userID if you prefer)
+            $stmt->bind_param("iis", $userID, $rid, $message);
             if (!$stmt->execute()) {
                 http_response_code(500);
                 $flash = "Insert failed: " . htmlspecialchars($stmt->error);
@@ -57,14 +59,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message'])) {
     }
 }
 
-// Load conversation for this user
+// Load conversation for this user (user <-> admin)
 $rows = [];
-$stmt = $conn->prepare("SELECT feedbackID, userID, date, message, admin_reply
-                        FROM feedback
-                        WHERE userID = ?
-                        ORDER BY date ASC, feedbackID ASC");
+$stmt = $conn->prepare(
+    "SELECT messageID, SID, RID, timestamp, text
+     FROM message
+     WHERE (SID = ? AND RID = 17) OR (SID = 17 AND RID = ?)
+     ORDER BY timestamp ASC, messageID ASC"
+);
 if ($stmt) {
-    $stmt->bind_param("i", $userID);
+    $stmt->bind_param("ii", $userID, $userID);
     if ($stmt->execute()) {
         $result = $stmt->get_result();
         while ($row = $result->fetch_assoc()) {
@@ -74,10 +78,10 @@ if ($stmt) {
     }
     $stmt->close();
 } else {
-    // Surface prepare error
     $flash = "Query prepare failed: " . htmlspecialchars($conn->error);
     $flash_class = "err";
 }
+
 
 ?>
 <!doctype html>
@@ -116,36 +120,62 @@ if ($stmt) {
       </div>
     </div>
 
-    <?php if ($flash): ?>
-      <div class="flash <?php echo $flash_class; ?>"><?php echo htmlspecialchars($flash); ?></div>
+<?php
+/* ============================
+   Flash message (success/error)
+   ============================ */
+?>
+<?php if ($flash): ?>
+  <div class="flash <?php echo $flash_class; ?>">
+    <?php echo htmlspecialchars($flash); ?>
+  </div>
+<?php endif; ?>
+
+<?php
+/* =======================================
+   Chat thread: user <-> admin (RID = 0)
+   - $rows was loaded from `message`
+   - Each row has: messageID, SID, RID, timestamp, text
+   - We align bubbles based on who sent the message:
+       * if SID == $userID   -> "You" bubble on the right (class "user")
+       * if SID == 0 (admin) -> "Admin" bubble on the left (class "admin")
+   ======================================= */
+?>
+<section class="chat-shell" aria-label="Conversation">
+  <div class="chat-scroll" id="chat">
+
+    <?php if (empty($rows)): ?>
+      <!-- Empty state when no messages exist yet -->
+      <div class="feedback-item">No messages yet. Start the conversation below.</div>
+
+    <?php else: ?>
+      <?php foreach ($rows as $r): ?>
+        <?php
+          // Determine who sent this message and pick bubble/meta alignment
+          $isYou = ((int)$r['SID'] === (int)$userID);
+          $bubbleClass = $isYou ? 'user' : 'admin';
+          $metaClass   = $isYou ? 'right' : 'left';
+          $whoLabel    = $isYou ? 'You' : 'Admin';
+          $when        = date("M d, Y H:i", strtotime($r['timestamp']));
+          $text        = (string)($r['text'] ?? '');
+        ?>
+        <div class="msg-row">
+          <!-- Message bubble -->
+          <div class="bubble <?php echo $bubbleClass; ?>">
+            <?php echo nl2br(htmlspecialchars($text)); ?>
+          </div>
+
+          <!-- Meta line under the bubble (sender label + timestamp) -->
+          <div class="meta <?php echo $metaClass; ?>">
+            <?php echo $whoLabel; ?> • <?php echo $when; ?>
+          </div>
+        </div>
+      <?php endforeach; ?>
     <?php endif; ?>
 
-    <section class="chat-shell" aria-label="Conversation">
-      <div class="chat-scroll" id="chat">
-        <?php if (empty($rows)): ?>
-          <div class="feedback-item">No messages yet. Start the conversation below.</div>
-        <?php else: foreach ($rows as $r): ?>
-            <div class="msg-row">
-              <div class="bubble user">
-                <?php echo nl2br(htmlspecialchars($r['message'] ?? '')); ?>
-              </div>
-              <div class="meta right">
-                You • <?php echo date("M d, Y H:i", strtotime($r['date'])); ?>
-              </div>
+  </div>
+</section>
 
-              <?php if (!is_null($r['admin_reply']) && $r['admin_reply'] !== ''): ?>
-                <div class="bubble admin">
-                  <?php echo nl2br(htmlspecialchars($r['admin_reply'])); ?>
-                </div>
-                <div class="meta left">
-                  Admin • reply to #<?php echo (int)$r['feedbackID']; ?>
-                </div>
-              <?php else: ?>
-                <div class="meta left">Admin • (pending reply)</div>
-              <?php endif; ?>
-            </div>
-        <?php endforeach; endif; ?>
-      </div>
 
       <!-- Composer -->
       <form class="composer" method="post" action="">
