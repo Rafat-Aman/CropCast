@@ -40,22 +40,12 @@ if ($picPath) {
 </head>
 <body>
 <div class="dashboard-wrapper">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <h2>🌾 CropCast</h2>
-        <ul>
-            <li><a href="dashboard.php" id="menu-dashboard" class="active">📊 Dashboard</a></li>
-            <li><a href="profile/profile.php" id="menu-profile">👤 Profile</a></li>
-            <li><a href="fields/fields.php" id="menu-fields">🌱 Fields</a></li>
-            <li><a href="crop/crop.php" id="menu-weather"> Crop</a></li>
-            <li><a href="soil/soil.php" id="menu-soil">🧪 Soil Data</a></li>
-            <li><a href="reports/reports.php" id="menu-reports">📄 Reports</a></li>
-            <li><a href="settings/settings.php" id="menu-settings">⚙️ Settings</a></li>
+    <?php
+    // Include the shared sidebar (absolute path)
+    // Adjust $BASE inside the partial if your app base changes.
+    include __DIR__ . '../../Dashboard/partials/partials.php';
+  ?>
 
-            <li><a href="../Dashboard/feedback/feedback.php" id="feedback-link">💬 feedback</a></li>
-            <li><a href="../logout.php" id="logout-link">🚪 Logout</a></li>
-        </ul>
-    </aside>
 
     <!-- Main content -->
     <div class="dashboard-container">

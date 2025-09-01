@@ -1,144 +1,368 @@
 <?php
 /**
- * Fields — main page (User area)
- * Refactor:
- *  - Use the new shared sidebar partial (/Dashboard/partials/sidebar.php)
- *  - Keep existing Fields CRUD logic intact inside the "PAGE CONTENT" block
+ * Fields — CRUD for maindb.farm
+ * - GET  => renders page (HTML)
+ * - POST => JSON API: list | create | delete
+ *
+ * Restores the dual-mode behavior and endpoints you had before,
+ * while switching the sidebar to the new shared partial.
+ *
+ * Requires:
+ *   - $_SESSION['user_id'] (farmerID)
+ *   - main.php defining either $conn (mysqli) or $pdo (PDO)
  */
 session_start();
-header('Content-Type: text/html; charset=utf-8');
+header('Content-Type: application/json');
+require_once __DIR__ . '/../../main.php';
 
-// 1) App bootstrap (DB connection etc.)
-require_once __DIR__ . '/../../main.php';  // provides $conn (mysqli)
-
-// 2) Session guard
+/* ──────────────────────────────────────────────────────────────
+   Session guard
+   ────────────────────────────────────────────────────────────── */
 if (!isset($_SESSION['user_id'])) {
-  http_response_code(401);
-  echo "<!doctype html><html><body><p>Unauthorized</p></body></html>";
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    exit;
+}
+//
+// Map the logged-in user to the farmer primary key
+$userID = (int) $_SESSION['user_id'];
+$row = db_query_all("SELECT farmerID FROM farmer WHERE userID = ? LIMIT 1", [$userID]);
+if (!$row) {
+  http_response_code(403);
+  echo json_encode(['success' => false, 'message' => 'No farmer profile for this user.']);
   exit;
 }
+$farmerID = (int)$row[0]['farmerID'];
 
-// Optional: flash messaging (use these from your existing handlers)
-$flash = $flash ?? null;
-$flash_class = $flash_class ?? 'ok';
 
+/* 
+ * Important: switch to HTML content-type for GET
+ * so this same file can render the page.
+ */
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    header('Content-Type: text/html; charset=utf-8');
+}
+
+/* ──────────────────────────────────────────────────────────────
+   DB helpers: work with either $pdo (PDO) or $conn (MySQLi)
+   ────────────────────────────────────────────────────────────── */
+function db_is_pdo() {
+    return isset($GLOBALS['pdo']) && $GLOBALS['pdo'] instanceof PDO;
+}
+function db_is_mysqli() {
+    return isset($GLOBALS['conn']) && $GLOBALS['conn'] instanceof mysqli;
+}
+function db_query_all(string $sql, array $params = []) : array {
+    if (db_is_pdo()) {
+        $stmt = $GLOBALS['pdo']->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } elseif (db_is_mysqli()) {
+        $stmt = $GLOBALS['conn']->prepare($sql);
+        if ($params) {
+            $types = '';
+            $bind  = [];
+            foreach ($params as $p) {
+                if (is_int($p)) $types .= 'i';
+                elseif (is_float($p)) $types .= 'd';
+                else $types .= 's';
+                $bind[] = $p;
+            }
+            $stmt->bind_param($types, ...$bind);
+        }
+        $stmt->execute();
+        $res  = $stmt->get_result();
+        $rows = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
+        $stmt->close();
+        return $rows;
+    }
+    throw new Exception('No database connection ($pdo or $conn) found.');
+}
+function db_exec(string $sql, array $params = []) : bool {
+    if (db_is_pdo()) {
+        $stmt = $GLOBALS['pdo']->prepare($sql);
+        return $stmt->execute($params);
+    } elseif (db_is_mysqli()) {
+        $stmt = $GLOBALS['conn']->prepare($sql);
+        if ($params) {
+            $types = '';
+            $bind  = [];
+            foreach ($params as $p) {
+                if (is_int($p)) $types .= 'i';
+                elseif (is_float($p)) $types .= 'd';
+                else $types .= 's';
+                $bind[] = $p;
+            }
+            $stmt->bind_param($types, ...$bind);
+        }
+        $ok = $stmt->execute();
+        $stmt->close();
+        return $ok;
+    }
+    throw new Exception('No database connection ($pdo or $conn) found.');
+}
+function db_last_id() : int {
+    if (db_is_pdo())     return (int)$GLOBALS['pdo']->lastInsertId();
+    if (db_is_mysqli())  return (int)$GLOBALS['conn']->insert_id;
+    return 0;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   POST → JSON API
+   - list:   farms of this farmer (join region for name)
+   - create: add a farm (regionID, area_size)
+   - delete: delete a farm you own
+   ────────────────────────────────────────────────────────────── */
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Accept JSON or form-urlencoded
+    $payload = $_POST;
+    if (empty($payload)) {
+        $raw = file_get_contents('php://input');
+        if ($raw) {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) $payload = $decoded;
+        }
+    }
+
+    $action = isset($payload['action']) ? trim($payload['action']) : '';
+
+    try {
+        if ($action === 'list') {
+            $farms = db_query_all(
+                "SELECT f.farmID, f.regionID, r.name AS region_name, f.area_size
+                   FROM farm f
+                   JOIN region r ON r.regionID = f.regionID
+                  WHERE f.farmerID = ?
+               ORDER BY f.farmID DESC",
+                [$farmerID]
+            );
+            echo json_encode(['success' => true, 'farms' => $farms]);
+            exit;
+
+        } elseif ($action === 'create') {
+            $regionID  = isset($payload['regionID'])  ? (int)$payload['regionID']  : 0;
+            $area_size = isset($payload['area_size']) ? (float)$payload['area_size'] : 0.0;
+
+            if ($regionID <= 0 || $area_size <= 0) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'regionID and area_size are required and must be positive']);
+                exit;
+            }
+
+            // Validate region
+            $exists = db_query_all("SELECT regionID FROM region WHERE regionID = ?", [$regionID]);
+            if (!$exists) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Invalid regionID']);
+                exit;
+            }
+
+            $ok = db_exec(
+                "INSERT INTO farm (farmerID, regionID, area_size) VALUES (?, ?, ?)",
+                [$farmerID, $regionID, $area_size]
+            );
+            echo json_encode($ok
+                ? ['success' => true, 'farmID' => db_last_id()]
+                : ['success' => false, 'message' => 'Insert failed']
+            );
+            exit;
+
+        } elseif ($action === 'delete') {
+            $farmID = isset($payload['farmID']) ? (int)$payload['farmID'] : 0;
+            if ($farmID <= 0) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'farmID is required']);
+                exit;
+            }
+
+            // Ownership check
+            $own = db_query_all("SELECT farmID FROM farm WHERE farmID = ? AND farmerID = ?", [$farmID, $farmerID]);
+            if (!$own) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Not allowed']);
+                exit;
+            }
+
+            $ok = db_exec("DELETE FROM farm WHERE farmID = ?", [$farmID]);
+            echo json_encode(['success' => $ok]);
+            exit;
+
+        } else {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Unknown action']);
+            exit;
+        }
+    } catch (Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Server error', 'error' => $e->getMessage()]);
+        exit;
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   GET → Render the page
+   - Loads regions for the dropdown
+   - Sidebar included via the new shared partial
+   ────────────────────────────────────────────────────────────── */
+$regions = [];
+try {
+    $regions = db_query_all("SELECT regionID, name FROM region ORDER BY name ASC");
+} catch (Throwable $e) {
+    // render page anyway; form will show a helpful message
+}
 ?>
 <!doctype html>
 <html lang="en">
 <head>
-  <!-- ========== HEAD: meta + styles ========== -->
   <meta charset="utf-8" />
+  <title>My Farms</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fields</title>
-
-  <!-- Fields page styles (sidebar styles removed; light theme kept) -->
-  <link rel="stylesheet" href="fields.css?v=<?php echo time(); ?>">
+  <link rel="stylesheet" href="fields.css" />
 </head>
-<body>
+<body class="kts-has-sidebar"><!-- ensures page offset for sidebar -->
+  <?php
+    // Include the shared sidebar (absolute path)
+    // Adjust $BASE inside the partial if your app base changes.
+    include __DIR__ . '../../partials/partials.php';
+  ?>
 
-<?php
-  /**
-   * 3) Include the shared, collapsible sidebar (absolute include)
-   *    - Handles its own CSS/JS and body margin shift.
-   *    - Make sure the file exists at: /Dashboard/partials/sidebar.php
-   */
-  //include $_SERVER['DOCUMENT_ROOT'] . '/Dashboard/partials/partials.php';
-  include __DIR__ . '../../partials/partials.php';
+  <div class="container">
+    <!-- Page header -->
+    <header class="header">
+      <h1>My Farms</h1>
+      <p class="subtitle">Manage your farm records (add or remove). Logged in as User #<?= htmlspecialchars($farmerID) ?></p>
+    </header>
 
+    <!-- Add form -->
+    <section class="panel">
+      <h2>Add a Farm</h2>
+      <form id="addFarmForm" class="form">
+        <div class="form-row">
+          <label for="regionID">Region</label>
+          <select id="regionID" name="regionID" required>
+            <?php if (!empty($regions)): ?>
+              <option value="" disabled selected>Select a region</option>
+              <?php foreach ($regions as $reg): ?>
+                <option value="<?= (int)$reg['regionID'] ?>"><?= htmlspecialchars($reg['name']) ?></option>
+              <?php endforeach; ?>
+            <?php else: ?>
+              <option value="" disabled selected>No regions found</option>
+            <?php endif; ?>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="area_size">Area Size (acres)</label>
+          <input type="number" step="0.01" min="0.01" id="area_size" name="area_size" placeholder="e.g., 2.50" required />
+        </div>
+        <button type="submit" class="btn">Add Farm</button>
+        <div id="formMsg" class="msg"></div>
+      </form>
+    </section>
 
-?>
+    <!-- List -->
+    <section class="panel">
+      <h2>Your Farms</h2>
+      <div id="farmsList" class="list"></div>
+      <div id="listMsg" class="msg"></div>
+    </section>
+  </div>
 
-<!-- ========== PAGE CONTENT WRAPPER ========== -->
-<div class="container">
-  <!-- 4) Page header -->
-  <header class="header">
-    <h1>Fields</h1>
-    <p class="subtitle">Manage your fields, sizes, and details.</p>
-  </header>
+<script>
+/* Frontend: fetch-based CRUD using this same file as endpoint */
+const farmsList = document.getElementById('farmsList');
+const listMsg   = document.getElementById('listMsg');
+const formMsg   = document.getElementById('formMsg');
+const addForm   = document.getElementById('addFarmForm');
 
-  <!-- 5) Flash messages (optional) -->
-  <?php if (!empty($flash)): ?>
-    <div class="panel">
-      <strong class="<?php echo htmlspecialchars($flash_class); ?>">
-        <?php echo htmlspecialchars($flash); ?>
-      </strong>
-    </div>
-  <?php endif; ?>
-
-  <!-- 6) PANELS: your existing forms/tables go here.
-          Keep your current PHP handlers/queries; only the sidebar changed. -->
-
-  <!-- Example: Create / Update Field panel (keep/replace with your real form) -->
-  <section class="panel">
-    <h2>Add / Update Field</h2>
-    <form class="form" method="post" action="">
-      <!--
-        NOTE: Replace inputs with your real field names.
-        Keep your existing POST handlers above this template.
-      -->
-      <div class="form-row">
-        <label for="field_name">Field Name</label>
-        <input id="field_name" name="field_name" type="text" placeholder="e.g., North Plot" required>
+/** Load farms for this user */
+async function loadFarms() {
+  listMsg.textContent = 'Loading...';
+  farmsList.innerHTML = '';
+  try {
+    const res = await fetch('fields.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ action: 'list' })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || 'Failed to load');
+    listMsg.textContent = '';
+    if (!data.farms || data.farms.length === 0) {
+      farmsList.innerHTML = '<div class="empty">No farms yet. Add your first farm above.</div>';
+      return;
+    }
+    farmsList.innerHTML = data.farms.map(f => `
+      <div class="card">
+        <div class="card-main">
+          <div><strong>Farm #${f.farmID}</strong></div>
+          <div>Region: ${escapeHtml(f.region_name || ('ID ' + f.regionID))}</div>
+          <div>Area Size: ${Number(f.area_size).toFixed(2)} acres</div>
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-danger" onclick="deleteFarm(${f.farmID})">Delete</button>
+        </div>
       </div>
-      <div class="form-row">
-        <label for="field_size">Size (acres)</label>
-        <input id="field_size" name="field_size" type="number" step="0.01" placeholder="e.g., 2.50" required>
-      </div>
-      <div class="form-row">
-        <label for="field_notes">Notes (optional)</label>
-        <input id="field_notes" name="field_notes" type="text" placeholder="Irrigation schedule, soil type…">
-      </div>
+    `).join('');
+  } catch (e) {
+    listMsg.textContent = e.message || 'Error loading farms';
+  }
+}
 
-      <div style="display:flex; gap:8px; flex-wrap:wrap">
-        <button type="submit" name="create" class="btn">Save Field</button>
-        <!-- Optional destructive action -->
-        <!-- <button type="submit" name="delete" class="btn btn-danger">Delete Selected</button> -->
-      </div>
-    </form>
-    <p class="msg">Tip: You can edit existing fields below.</p>
-  </section>
+/** Delete a farm (with confirmation) */
+async function deleteFarm(farmID) {
+  if (!confirm('Delete this farm?')) return;
+  try {
+    const res = await fetch('fields.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ action: 'delete', farmID })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || 'Delete failed');
+    await loadFarms();
+  } catch (e) {
+    alert(e.message || 'Delete failed');
+  }
+}
 
-  <!-- Example: Your Fields list (replace with your live table/results) -->
-  <section class="panel">
-    <h2>Your Fields</h2>
+/** Handle create */
+addForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  formMsg.textContent = '';
+  const regionID  = parseInt(document.getElementById('regionID').value, 10);
+  const area_size = parseFloat(document.getElementById('area_size').value);
+  if (!regionID || !area_size || area_size <= 0) {
+    formMsg.textContent = 'Please choose a region and enter a valid area size.';
+    return;
+  }
+  try {
+    const res = await fetch('fields.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ action: 'create', regionID, area_size })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || 'Add failed');
+    addForm.reset();
+    await loadFarms();
+    formMsg.textContent = 'Farm added successfully.';
+  } catch (e) {
+    formMsg.textContent = e.message || 'Add failed';
+  }
+});
 
-    <?php
-      /**
-       * 7) DATA LIST:
-       *    If you already have the SELECT query + loop, keep it.
-       *    Below is a harmless, placeholder example you can remove.
-       */
-      $example = []; // Replace with your fetched rows
-    ?>
+/** Small helper to keep text safe */
+function escapeHtml(s) {
+  return String(s)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
 
-    <?php if (empty($example)): ?>
-      <div class="empty">No fields yet. Add your first field above.</div>
-    <?php else: ?>
-      <div class="list">
-        <?php foreach ($example as $row): ?>
-          <div class="card">
-            <div class="card-main">
-              <div><strong><?php echo htmlspecialchars($row['name']); ?></strong></div>
-              <div>Size: <?php echo htmlspecialchars($row['size']); ?> acres</div>
-              <div class="muted"><?php echo htmlspecialchars($row['notes'] ?? ''); ?></div>
-            </div>
-            <div class="card-actions">
-              <form method="post" action="">
-                <input type="hidden" name="field_id" value="<?php echo (int)$row['id']; ?>">
-                <button class="btn" name="edit">Edit</button>
-              </form>
-              <form method="post" action="" onsubmit="return confirm('Delete this field?');">
-                <input type="hidden" name="field_id" value="<?php echo (int)$row['id']; ?>">
-                <button class="btn btn-danger" name="delete">Delete</button>
-              </form>
-            </div>
-          </div>
-        <?php endforeach; ?>
-      </div>
-    <?php endif; ?>
-  </section>
-</div>
-<!-- /container -->
-
+// initial load
+loadFarms();
+</script>
 </body>
 </html>

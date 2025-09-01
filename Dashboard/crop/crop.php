@@ -1,357 +1,436 @@
 <?php
+/**
+ * Crop Planner — show farms and recommend crops to sow for the current season.
+ * - UI style consistent with fields.php (uses shared sidebar partial)
+ * - Left: farm tiles (for the current farmer)
+ * - Right: seasonal recommendations (demand-supply deficit + sow window + weather)
+ *
+ * Tables used (auto-detects common name variants):
+ *   crop, crop_cycle, region, farm, demand, supply, weatherdetails
+ */
 session_start();
-header('Content-Type: application/json');
-include '../../main.php';
+header('Content-Type: text/html; charset=utf-8');
 
-// Session guard
+require_once __DIR__ . '/../../main.php'; // must provide $conn (mysqli) or $pdo (PDO)
+
+// -----------------------------
+// Auth guard
+// -----------------------------
 if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
+  http_response_code(401);
+  echo "<!doctype html><html><body><p>Unauthorized</p></body></html>";
+  exit;
 }
 
-/* Serve HTML on GET, JSON on POST */
-if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    header('Content-Type: text/html; charset=utf-8');
-}
-
-/* ---------- DB helpers (PDO or MySQLi from main.php) ---------- */
-function db_is_pdo() { return isset($GLOBALS['pdo']) && $GLOBALS['pdo'] instanceof PDO; }
+// -----------------------------
+// DB helpers (PDO or mysqli)
+// -----------------------------
+function db_is_pdo()    { return isset($GLOBALS['pdo'])  && $GLOBALS['pdo']  instanceof PDO; }
 function db_is_mysqli() { return isset($GLOBALS['conn']) && $GLOBALS['conn'] instanceof mysqli; }
 
 function db_query_all($sql, $params = []) {
-    if (db_is_pdo()) {
-        $st = $GLOBALS['pdo']->prepare($sql);
-        $st->execute($params);
-        return $st->fetchAll(PDO::FETCH_ASSOC);
-    } elseif (db_is_mysqli()) {
-        $st = $GLOBALS['conn']->prepare($sql);
-        if ($params) {
-            $types=''; $bind=[];
-            foreach ($params as $p) { $types.= is_int($p)?'i' : (is_float($p)?'d':'s'); $bind[]=$p; }
-            $st->bind_param($types, ...$bind);
-        }
-        $st->execute();
-        $res = $st->get_result();
-        $rows = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
-        $st->close();
-        return $rows;
+  if (db_is_pdo()) {
+    $stmt = $GLOBALS['pdo']->prepare($sql);
+    $stmt->execute($params);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+  } elseif (db_is_mysqli()) {
+    $stmt = $GLOBALS['conn']->prepare($sql);
+    if ($params) {
+      $types = ''; $bind = [];
+      foreach ($params as $p) {
+        if (is_int($p)) $types .= 'i';
+        elseif (is_float($p)) $types .= 'd';
+        else $types .= 's';
+        $bind[] = $p;
+      }
+      $stmt->bind_param($types, ...$bind);
     }
-    throw new Exception('No database connection found.');
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $rows = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
+    $stmt->close();
+    return $rows;
+  }
+  throw new Exception('No database connection ($pdo or $conn) found.');
+}
+function db_exec($sql, $params = []) {
+  if (db_is_pdo()) {
+    $stmt = $GLOBALS['pdo']->prepare($sql);
+    return $stmt->execute($params);
+  } elseif (db_is_mysqli()) {
+    $stmt = $GLOBALS['conn']->prepare($sql);
+    if ($params) {
+      $types = ''; $bind = [];
+      foreach ($params as $p) {
+        if (is_int($p)) $types .= 'i';
+        elseif (is_float($p)) $types .= 'd';
+        else $types .= 's';
+        $bind[] = $p;
+      }
+      $stmt->bind_param($types, ...$bind);
+    }
+    $ok = $stmt->execute();
+    $stmt->close();
+    return $ok;
+  }
+  throw new Exception('No database connection ($pdo or $conn) found.');
 }
 
-/* ---------- Season helpers (Bangladesh windows) ---------- */
-function months_for_season($season) {
-    if ($season === 'Rabi')      return [11,12,1,2];   // Nov–Feb
-    if ($season === 'Kharif-1')  return [3,4,5,6];     // Mar–Jun
-    if ($season === 'Kharif-2')  return [7,8,9,10];    // Jul–Oct
-    return [];
+// -----------------------------
+// Utility: table name chooser
+// -----------------------------
+function table_exists_any(array $candidates) {
+  $names = array_map(function($n){ return "'".$n."'"; }, $candidates);
+  $in    = implode(',', $names);
+  $sql   = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
+           WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ($in) LIMIT 1";
+  $hit   = db_query_all($sql);
+  return $hit ? $hit[0]['TABLE_NAME'] : null;
 }
-function season_of_month($m) {
-    if (in_array($m,[11,12,1,2],true)) return 'Rabi';
-    if (in_array($m,[3,4,5,6],true))   return 'Kharif-1';
-    return 'Kharif-2';
-}
-function next_three_seasons_from_month($m) {
-    $cur = season_of_month($m);
-    $order = ['Rabi','Kharif-1','Kharif-2'];
-    $i = array_search($cur, $order, true);
-    return [$order[$i], $order[($i+1)%3], $order[($i+2)%3]];
-}
-function month_abbr_to_num($abbr) {
-    static $map = ['Jan'=>1,'Feb'=>2,'Mar'=>3,'Apr'=>4,'May'=>5,'Jun'=>6,'Jul'=>7,'Aug'=>8,'Sep'=>9,'Oct'=>10,'Nov'=>11,'Dec'=>12];
-    $k = ucfirst(strtolower(substr(trim($abbr),0,3)));
-    return $map[$k] ?? null;
-}
-function parse_sow_months($text) {
-    $text = trim((string)$text);
-    if ($text === '') return [];
-    if (stripos($text,'year') !== false) return [1,2,3,4,5,6,7,8,9,10,11,12];
-    preg_match_all('/Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec/i', $text, $m);
-    $months = array_values(array_map('month_abbr_to_num', $m[0]));
-    if (count($months) === 1) return $months;
-    if (count($months) >= 2) {
-        $a = $months[0]; $b = end($months);
-        $out = []; $x = $a;
-        while (true) {
-            $out[] = $x;
-            if ($x === $b) break;
-            $x = $x === 12 ? 1 : $x + 1;
-            if (count($out) > 12) break;
-        }
-        return array_values(array_unique($out));
-    }
-    return [];
+$T_SUPPLY   = table_exists_any(['supply','Supply','supplycrop','SupplyCrop','supply_crop']);
+$T_DEMAND   = table_exists_any(['demand','Demand','regionalDemand','RegionalDemand','regional_demand']);
+$T_CYCLE    = table_exists_any(['crop_cycle','cropcycle','Crop_Cycle']);
+$T_WEATHER  = table_exists_any(['weatherdetails','WeatherDetails','weather_details']);
+$T_CROP     = table_exists_any(['crop','Crop']);
+$T_FARM     = table_exists_any(['farm','Farm']);
+$T_REGION   = table_exists_any(['region','Region']);
+
+if (!$T_SUPPLY || !$T_DEMAND || !$T_CYCLE || !$T_WEATHER || !$T_CROP || !$T_FARM || !$T_REGION) {
+  http_response_code(500);
+  echo "<!doctype html><html><body><p>Missing expected tables. Please ensure crop, crop_cycle, supply, demand, weatherdetails, farm, region exist.</p></body></html>";
+  exit;
 }
 
-/* ---------- POST API ---------- */
-$farmerID = (int)$_SESSION['user_id'];
+// -----------------------------
+// Seasonal helpers
+// -----------------------------
+/** Month to label helpers (supports 2-month and 3-month windows from your crop_cycle data) */
+function period_labels_for_month(int $m): array {
+  // Two-month windows
+  $pairs = [
+    'Jan-Feb'=>[1,2], 'Feb-Mar'=>[2,3], 'Mar-Apr'=>[3,4], 'Apr-May'=>[4,5],
+    'May-Jun'=>[5,6], 'Jun-Jul'=>[6,7], 'Jul-Aug'=>[7,8], 'Aug-Sep'=>[8,9],
+    'Sep-Oct'=>[9,10], 'Oct-Nov'=>[10,11], 'Nov-Dec'=>[11,12], 'Dec-Jan'=>[12,1],
+  ];
+  // Three-month windows seen in your data
+  $triples = ['Nov-Jan'=>[11,12,1]];
+  $active = [];
+  foreach ($pairs as $label=>$arr)   if (in_array($m,$arr,true)) $active[]=$label;
+  foreach ($triples as $label=>$arr) if (in_array($m,$arr,true)) $active[]=$label;
+  // Always consider Year-round valid
+  $active[] = 'Year-round';
+  return array_values(array_unique($active));
+}
+function months_for_label(string $label): array {
+  $map = [
+    'Jan-Feb'=>[1,2], 'Feb-Mar'=>[2,3], 'Mar-Apr'=>[3,4], 'Apr-May'=>[4,5],
+    'May-Jun'=>[5,6], 'Jun-Jul'=>[6,7], 'Jul-Aug'=>[7,8], 'Aug-Sep'=>[8,9],
+    'Sep-Oct'=>[9,10], 'Oct-Nov'=>[10,11], 'Nov-Dec'=>[11,12], 'Dec-Jan'=>[12,1],
+    'Nov-Jan'=>[11,12,1], 'Year-round'=>[1,2,3,4,5,6,7,8,9,10,11,12],
+  ];
+  return $map[$label] ?? [];
+}
+
+// -----------------------------
+// POST → JSON API
+// -----------------------------
+$userID = (int)$_SESSION['user_id'];           // in your app this equals farmerID
+$farmerID = $userID;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $payload = $_POST;
-    if (empty($payload)) {
-        $raw = file_get_contents('php://input');
-        if ($raw) { $d = json_decode($raw, true); if (is_array($d)) $payload = $d; }
+  // accept JSON or form-encoded
+  $payload = $_POST;
+  if (empty($payload)) {
+    $raw = file_get_contents('php://input');
+    if ($raw) {
+      $decoded = json_decode($raw, true);
+      if (is_array($decoded)) $payload = $decoded;
     }
-    $action = isset($payload['action']) ? trim($payload['action']) : '';
+  }
 
-    try {
-        if ($action === 'list_farms') {
-            $farms = db_query_all(
-                "SELECT f.farmID, f.regionID, r.name AS region_name, f.area_size
-                 FROM farm f
-                 JOIN region r ON r.regionID = f.regionID
-                 WHERE f.farmerID = ?
-                 ORDER BY f.farmID DESC",
-                [$farmerID]
-            );
-            echo json_encode(['success'=>true,'farms'=>$farms]);
-            exit;
-        }
+  $action = isset($payload['action']) ? trim($payload['action']) : '';
 
-        if ($action === 'recommend_for_farm') {
-            $farmID = isset($payload['farmID']) ? (int)$payload['farmID'] : 0;
-            $startMonth = isset($payload['startMonth']) ? (int)$payload['startMonth'] : (int)date('n');
-            if ($farmID <= 0) { http_response_code(400); echo json_encode(['success'=>false,'message'=>'farmID required']); exit; }
+  try {
+    // 1) Return all farms for this farmer
+    if ($action === 'list_farms') {
+      $farms = db_query_all(
+        "SELECT f.farmID, f.regionID, r.name AS region_name, f.area_size
+         FROM {$T_FARM} f
+         JOIN {$T_REGION} r ON r.regionID = f.regionID
+         WHERE f.farmerID = ?
+         ORDER BY f.farmID DESC",
+        [$farmerID]
+      );
+      echo json_encode(['success'=>true,'farms'=>$farms]);
+      exit;
+    }
 
-            // Verify ownership + grab region
-            $farm = db_query_all(
-                "SELECT f.farmID, f.regionID, r.name AS region_name, f.area_size
-                 FROM farm f
-                 JOIN region r ON r.regionID = f.regionID
-                 WHERE f.farmID = ? AND f.farmerID = ? LIMIT 1",
-                [$farmID, $farmerID]
-            );
-            if (!$farm) { http_response_code(403); echo json_encode(['success'=>false,'message'=>'Not allowed or farm not found']); exit; }
-            $farm = $farm[0];
-
-            // Candidate crop cycles where region soils intersect crop soils
-            $rows = db_query_all(
-                "SELECT c.cropID, c.name AS crop_name, c.type,
-                        cy.duration, cy.sow_period, cy.harvest_period
-                 FROM crop c
-                 JOIN crop_soil_type cs   ON cs.cropID = c.cropID
-                 JOIN region_soil_type rs ON rs.soilID = cs.soilID AND rs.regionID = ?
-                 JOIN crop_cycle cy       ON cy.cropID = c.cropID
-                 ORDER BY c.name, cy.sow_period",
-                [(int)$farm['regionID']]
-            );
-
-            $seasonOrder = next_three_seasons_from_month($startMonth);
-            $plan = [];
-            $seen = ['Rabi'=>[], 'Kharif-1'=>[], 'Kharif-2'=>[]];
-            foreach ($seasonOrder as $s) { $plan[$s] = ['season'=>$s, 'months'=>months_for_season($s), 'crops'=>[]]; }
-
-            foreach ($rows as $r) {
-                $sowMonths = parse_sow_months($r['sow_period']);
-                foreach ($seasonOrder as $season) {
-                    if (array_intersect($sowMonths, months_for_season($season))) {
-                        $cid = (int)$r['cropID'];
-                        if (!isset($seen[$season][$cid])) {
-                            $seen[$season][$cid] = true;
-                            $plan[$season]['crops'][] = [
-                                'cropID'=>$cid,
-                                'name'=>$r['crop_name'],
-                                'type'=>$r['type'],
-                                'sow'=>$r['sow_period'],
-                                'harvest'=>$r['harvest_period'],
-                                'duration'=>(int)$r['duration']
-                            ];
-                        }
-                    }
-                }
-            }
-            foreach ($plan as &$p) { usort($p['crops'], fn($a,$b)=>strcmp($a['name'],$b['name'])); }
-
-            echo json_encode([
-                'success'=>true,
-                'farm'=>$farm,
-                'seasonOrder'=>$seasonOrder,
-                'plan'=>array_values($plan)
-            ]);
-            exit;
-        }
-
+    // 2) Recommend crops for a given farm
+    if ($action === 'recommend_for_farm') {
+      $farmID = isset($payload['farmID']) ? (int)$payload['farmID'] : 0;
+      if ($farmID <= 0) {
         http_response_code(400);
-        echo json_encode(['success'=>false,'message'=>'Unknown action']);
+        echo json_encode(['success'=>false,'message'=>'farmID is required']);
         exit;
+      }
 
-    } catch (Throwable $e) {
-        http_response_code(500);
-        echo json_encode(['success'=>false,'message'=>'Server error','error'=>$e->getMessage()]);
+      // Ensure ownership & fetch farm context
+      $farmRows = db_query_all(
+        "SELECT f.farmID, f.regionID, r.name AS region_name, f.area_size
+         FROM {$T_FARM} f
+         JOIN {$T_REGION} r ON r.regionID = f.regionID
+         WHERE f.farmID = ? AND f.farmerID = ?
+         LIMIT 1",
+        [$farmID, $farmerID]
+      );
+      if (!$farmRows) {
+        http_response_code(403);
+        echo json_encode(['success'=>false,'message'=>'Farm not found or not yours']);
         exit;
+      }
+      $farm = $farmRows[0];
+      $regionID = (int)$farm['regionID'];
+
+      // Current seasonal windows
+      $mNow = (int)date('n');
+      $activePeriods = period_labels_for_month($mNow);
+
+      // Demand vs Supply deficit by crop for this region
+      $sql = "
+        WITH d AS (
+          SELECT CropID, SUM(Quantity) AS dem
+          FROM {$T_DEMAND}
+          WHERE RegionID = ?
+          GROUP BY CropID
+        ),
+        s AS (
+          SELECT CropID, SUM(Quantity) AS sup
+          FROM {$T_SUPPLY}
+          WHERE RegionID = ?
+          GROUP BY CropID
+        )
+        SELECT c.cropID, c.name, c.type,
+               cy.sow_period, cy.harvest_period, cy.duration,
+               COALESCE(d.dem,0) AS demand,
+               COALESCE(s.sup,0) AS supply,
+               (COALESCE(d.dem,0) - COALESCE(s.sup,0)) AS deficit
+        FROM {$T_CROP} c
+        LEFT JOIN {$T_CYCLE} cy ON cy.cropID = c.cropID
+        LEFT JOIN d ON d.CropID = c.cropID
+        LEFT JOIN s ON s.CropID = c.cropID
+        WHERE cy.sow_period IN (" . str_repeat('?,', count($activePeriods)-1) . "?) 
+        ORDER BY deficit DESC, c.name ASC
+        LIMIT 12";
+      $params = [$regionID, $regionID, ...$activePeriods];
+      $rows   = db_query_all($sql, $params);
+
+      // Weather snapshot for the months in the first matching sow window
+      $months = months_for_label($activePeriods[0]);
+      $monthLabels = array_map(fn($n)=>date('M', mktime(0,0,0,$n,1)), $months);
+      $weather = [];
+      if ($months) {
+        $placeholders = implode(',', array_fill(0, count($monthLabels), '?'));
+        $w = db_query_all(
+          "SELECT MonthLabel, WeatherPrediction
+           FROM {$T_WEATHER}
+           WHERE RegionID = ? AND MonthLabel IN ($placeholders)
+           ORDER BY FIELD(MonthLabel, $placeholders)",
+          array_merge([$regionID], $monthLabels, $monthLabels) // for FIELD() order
+        );
+        foreach ($w as $r) $weather[] = $r['MonthLabel'].': '.$r['WeatherPrediction'];
+      }
+
+      // Shape the result for UI
+      $plan = array_map(function($r){
+        return [
+          'id'      => (int)$r['cropID'],
+          'name'    => (string)$r['name'],
+          'type'    => (string)($r['type'] ?? ''),
+          'sow'     => (string)($r['sow_period'] ?? ''),
+          'harvest' => (string)($r['harvest_period'] ?? ''),
+          'duration'=> (int)($r['duration'] ?? 0),
+          'demand'  => (float)$r['demand'],
+          'supply'  => (float)$r['supply'],
+          'deficit' => (float)$r['deficit'],
+        ];
+      }, $rows);
+
+      echo json_encode([
+        'success'=>true,
+        'farm'=>$farm,
+        'season_label'=>$activePeriods[0],
+        'weather'=>$weather,
+        'plan'=>$plan
+      ]);
+      exit;
     }
+
+    http_response_code(400);
+    echo json_encode(['success'=>false,'message'=>'Unknown action']);
+    exit;
+
+  } catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode(['success'=>false,'message'=>'Server error','error'=>$e->getMessage()]);
+    exit;
+  }
 }
+
+// -----------------------------
+// GET → Render page
+// -----------------------------
 ?>
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
+  <meta charset="utf-8" />
   <title>Crop Planner</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <link rel="stylesheet" href="crop.css"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="crop.css?v=<?= time() ?>" />
 </head>
 <body>
-  <!-- Left Sidebar -->
-  <aside class="sidebar">
-    <nav>
-      <ul>
-        <li><a href="../dashboard.php" id="menu-dashboard" class="active">📊 Dashboard</a></li>
-        <li><a href="../profile/profile.php" id="menu-profile">👤 Profile</a></li>
-        <li><a href="../fields/fields.php" id="menu-fields">🌱 Fields</a></li>
-        <li><a href="../crop/crop.php" id="menu-weather">🌾 Crop</a></li>
-        <li><a href="../soil/soil.php" id="menu-soil">🧪 Soil Data</a></li>
-        <li><a href="../reports/reports.php" id="menu-reports">📄 Reports</a></li>
-        <li><a href="../settings/settings.php" id="menu-settings">⚙️ Settings</a></li>
-        <li><a href="../feedback/feedback.php" id="feedback-link">💬 feedback</a></li>
-        <li><a href="../../logout.php" id="logout-link">🚪 Logout</a></li>
-      </ul>
-    </nav>
-  </aside>
+  <!-- Sidebar (absolute include) -->
+   <?php
+    // Include the shared sidebar (absolute path)
+    // Adjust $BASE inside the partial if your app base changes.
+    include __DIR__ . '../../partials/partials.php';
+  ?>
 
-  <!-- Main page content -->
-  <main class="page">
-    <div class="container">
-      <header class="header">
-        <h1>Crop Planner</h1>
-        <p class="subtitle">Pick one of your farms to see recommended crops for the next three seasons.</p>
-      </header>
 
-      <div class="layout">
-        <!-- Center: Farm tiles -->
-        <section class="panel">
-          <h2>Your Farms</h2>
-          <div id="farmsGrid" class="farm-grid"></div>
-          <div id="farmMsg" class="msg"></div>
-        </section>
+  <div class="container">
+    <header class="header">
+      <h1>Crop Planner</h1>
+      <p class="subtitle">Choose a farm to see what’s best to sow this season.</p>
+    </header>
 
-        <!-- Right: Recommendations -->
-        <aside class="rightbar">
-          <div class="panel sticky">
-            <h2>Recommendations</h2>
-            <div class="right-info" id="rightInfo">Select a farm to view recommendations.</div>
-            <div id="planGrid" class="plan-grid"></div>
-          </div>
-        </aside>
+    <section class="panel grid">
+      <div class="left">
+        <h2>Your Farms</h2>
+        <div id="farms" class="farms"></div>
+        <div id="farmMsg" class="msg"></div>
       </div>
-    </div>
-  </main>
+
+      <div class="right">
+        <h2>Recommendations</h2>
+        <div id="rightInfo" class="right-info muted">Select a farm to see recommendations.</div>
+        <div id="plan" class="list"></div>
+      </div>
+    </section>
+  </div>
 
 <script>
-const farmsGrid = document.getElementById('farmsGrid');
+const farmsGrid = document.getElementById('farms');
 const farmMsg   = document.getElementById('farmMsg');
 const rightInfo = document.getElementById('rightInfo');
-const planGrid  = document.getElementById('planGrid');
+const planGrid  = document.getElementById('plan');
+let   selectedFarmId = null;
 
-let selectedFarmId = null;
-
-function escapeHtml(s){ return String(s)
-  .replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')
-  .replaceAll('"','&quot;').replaceAll("'","&#39;"); }
-
-function monthBadges(nums){
-  const L = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  return nums.map(n=>`<span class="badge">${L[n]}</span>`).join('');
+// Small helpers
+function escapeHtml(s){
+  return String(s)
+    .replaceAll('&','&amp;').replaceAll('<','&lt;')
+    .replaceAll('>','&gt;').replaceAll('"','&quot;')
+    .replaceAll("'",'&#39;');
 }
+function niceNumber(n){ return Number(n).toLocaleString(undefined, {maximumFractionDigits:2}); }
 
 function renderPlan(plan){
   if (!plan || !plan.length) {
-    planGrid.innerHTML = '<div class="empty">No matching crops for this farm\'s region.</div>';
+    planGrid.innerHTML = '<div class="empty">No strong deficits this season for this region.</div>';
     return;
   }
-  planGrid.innerHTML = plan.map(p => `
-    <div class="season-col">
-      <div class="season-head">
-        <div class="season-title">${p.season}</div>
-        <div class="months">${monthBadges(p.months)}</div>
+  planGrid.innerHTML = plan.map(r=>`
+    <div class="card">
+      <div class="card-main">
+        <div><strong>${escapeHtml(r.name)}</strong> <span class="type">(${escapeHtml(r.type || 'Crop')})</span></div>
+        <div class="muted">Sow: ${escapeHtml(r.sow)} • Harvest: ${escapeHtml(r.harvest)} • ~${r.duration || '—'} days</div>
       </div>
-      <div class="season-body">
-        ${p.crops.length ? p.crops.map(c => `
-          <div class="card">
-            <div class="card-main">
-              <div><strong>${escapeHtml(c.name)}</strong> <span class="type">(${escapeHtml(c.type || 'Crop')})</span></div>
-              <div class="muted">Sow: ${escapeHtml(c.sow)} • Harvest: ${escapeHtml(c.harvest)} • ~${c.duration} days</div>
-            </div>
-          </div>
-        `).join('') : '<div class="empty">No crops recommended for this season.</div>'}
+      <div class="card-actions">
+        <div class="pill deficit" title="Demand - Supply">Deficit: ${niceNumber(r.deficit)}</div>
+        <div class="pill">Demand: ${niceNumber(r.demand)}</div>
+        <div class="pill">Supply: ${niceNumber(r.supply)}</div>
       </div>
     </div>
   `).join('');
 }
 
-async function loadFarms() {
-  farmMsg.textContent = 'Loading farms...';
+async function loadFarms(){
+  farmMsg.textContent = 'Loading farms…';
   farmsGrid.innerHTML = '';
-  try {
+  try{
     const res = await fetch('crop.php', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ action: 'list_farms' })
+      body: JSON.stringify({ action:'list_farms' })
     });
     const data = await res.json();
     if (!data.success) throw new Error(data.message || 'Failed to load farms');
-
     farmMsg.textContent = '';
+
     if (!data.farms || data.farms.length === 0) {
-      farmsGrid.innerHTML = '<div class="empty">No farms found. Please add farms first in Fields.</div>';
+      farmsGrid.innerHTML = '<div class="empty">No farms found. Add farms in Fields.</div>';
       return;
     }
 
     farmsGrid.innerHTML = data.farms.map(f => `
       <button class="farm-tile" data-id="${f.farmID}">
         <div class="farm-title">Farm #${f.farmID}</div>
-        <div class="farm-sub">${escapeHtml(f.region_name || ('Region ' + f.regionID))}</div>
-        <div class="farm-meta">${Number(f.area_size).toFixed(2)} acres</div>
+        <div class="farm-sub">${escapeHtml(f.region_name || ('Region '+f.regionID))}</div>
+        <div class="farm-meta">${niceNumber(f.area_size)} acres</div>
       </button>
     `).join('');
 
-    // Auto-select first farm
     const first = farmsGrid.querySelector('.farm-tile');
     if (first) first.click();
 
-    // Bind clicks
     farmsGrid.querySelectorAll('.farm-tile').forEach(el=>{
-      el.addEventListener('click', () => {
+      el.addEventListener('click', ()=>{
         farmsGrid.querySelectorAll('.farm-tile').forEach(e=>e.classList.remove('selected'));
         el.classList.add('selected');
-        selectedFarmId = parseInt(el.dataset.id,10);
+        selectedFarmId = parseInt(el.dataset.id, 10);
         recommendForFarm(selectedFarmId);
       });
     });
 
-  } catch (e) {
+  }catch(e){
     farmMsg.textContent = e.message || 'Error loading farms';
   }
 }
 
-async function recommendForFarm(farmID) {
-  rightInfo.textContent = 'Calculating...';
+async function recommendForFarm(farmID){
+  rightInfo.textContent = 'Calculating…';
   planGrid.innerHTML = '';
-  try {
+  try{
     const res = await fetch('crop.php', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ action: 'recommend_for_farm', farmID })
+      body: JSON.stringify({ action:'recommend_for_farm', farmID })
     });
     const data = await res.json();
     if (!data.success) throw new Error(data.message || 'Failed');
+
+    const weather = (data.weather && data.weather.length)
+      ? `<div class="muted">${data.weather.map(escapeHtml).join(' • ')}</div>` : '';
 
     rightInfo.innerHTML = `
       <div class="farm-ctx">
         <div><strong>Farm #${data.farm.farmID}</strong></div>
         <div class="muted">${escapeHtml(data.farm.region_name)} • ${Number(data.farm.area_size).toFixed(2)} acres</div>
-      </div>`;
+        <div class="muted">Sowing window: <strong>${escapeHtml(data.season_label)}</strong></div>
+        ${weather}
+      </div>
+    `;
     renderPlan(data.plan);
 
-  } catch (e) {
+  }catch(e){
     rightInfo.textContent = e.message || 'Error generating recommendations';
   }
 }
 
-/* Highlight Crop menu item regardless of .active on others */
+// Emphasize Crop menu in sidebar
 document.addEventListener('DOMContentLoaded', ()=>{
-  const cropLink = document.querySelector('.sidebar a[href*="crop/crop.php"]');
-  if (cropLink) cropLink.classList.add('force-active');
+  const link = document.querySelector('.sidebar a[href*="/Dashboard/crop/crop.php"]');
+  if (link) link.classList.add('force-active');
 });
 
 loadFarms();

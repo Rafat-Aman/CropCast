@@ -17,20 +17,12 @@ if (!isset($_SESSION['user_id'])) {
 </head>
 <body>
   <div class="profile-wrapper">
-    <!-- Sidebar (unchanged) -->
-    <aside class="sidebar">
-      <h2>🌾 CropCast</h2>
-      <ul>
-        <li><a href="../dashboard.php">📊 Dashboard</a></li>
-        <li><a href="profile.html" class="active">👤 Profile</a></li>
-        <li><a href="../fields/fields.php">🌱 Fields</a></li>
-        <li><a href="../weather/weather.php">☁️ Weather</a></li>
-        <li><a href="../soil/soil.php">🧪 Soil Data</a></li>
-        <li><a href="../reports/reports.php">📄 Reports</a></li>
-        <li><a href="../settings/settings.php">⚙️ Settings</a></li>
-        <li><a href="../../logout.php" id="logout-link">🚪 Logout</a></li>
-      </ul>
-    </aside>
+    <?php
+    // Include the shared sidebar (absolute path)
+    // Adjust $BASE inside the partial if your app base changes.
+    include __DIR__ . '../../partials/partials.php';
+  ?>
+
 
     <!-- Profile Content -->
     <div class="profile-container">
