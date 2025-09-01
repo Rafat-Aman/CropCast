@@ -1,227 +1,178 @@
 <?php
-// admin/adminDashboard/farms/farms.php
+// farms.php — Admin view: Users (non-admin via farmer join) -> Farms -> Region location
+// Requires: main.php sets $conn = new mysqli(...)
 session_start();
-require_once $_SERVER['DOCUMENT_ROOT'] . '/ProjectFolder/main.php';
+header('Content-Type: text/html; charset=utf-8');
 
-if (empty($_SESSION['user_id'])) {
-  header('Location: /ProjectFolder/login/login.html');
+require_once __DIR__ . '/../../../main.php'; // mysqli $conn from project root
+
+/* =========================
+   Session / connection guard
+   ========================= */
+if (!isset($_SESSION['user_id'])) {
+  http_response_code(401);
+  echo "<!doctype html><html><body><p>Unauthorized</p></body></html>";
   exit;
 }
 
-$active = 'farms';  // highlight "Farms" in the admin sidebar
-
-/* -------------------------
-   CSRF Token for security
---------------------------*/
-if (empty($_SESSION['csrf'])) {
-  $_SESSION['csrf'] = bin2hex(random_bytes(16));
-}
-$csrf = $_SESSION['csrf'];
-
-/* -------------------------
-   DELETE (POST)
---------------------------*/
-if (
-  $_SERVER['REQUEST_METHOD'] === 'POST' &&
-  isset($_POST['action'], $_POST['csrf']) &&
-  $_POST['action'] === 'delete' &&
-  hash_equals($_SESSION['csrf'], $_POST['csrf'])
-) {
-  $deleteId = (int)($_POST['farm_id'] ?? 0);
-
-  $conn->begin_transaction();
-  try {
-    // Delete farm record
-    $stmt = $conn->prepare("DELETE FROM FARM WHERE farmID = ?");
-    $stmt->bind_param('i', $deleteId);
-    if (!$stmt->execute()) throw new Exception($stmt->error);
-    $stmt->close();
-
-    // Commit the transaction
-    $conn->commit();
-    $flash = ['type' => 'ok', 'text' => 'Farm deleted.'];
-  } catch (Exception $e) {
-    $conn->rollback();
-    $flash = ['type' => 'err', 'text' => 'Delete failed. Try again.'];
-  }
+if (!isset($conn) || !($conn instanceof mysqli)) {
+  http_response_code(500);
+  echo "<!doctype html><html><body><p>Database connection not configured.</p></body></html>";
+  exit;
 }
 
-/* -------------------------
-   SEARCH + PAGINATION (POST)
---------------------------*/
-$searchBy = $_POST['by'] ?? 'farm_name';  // farm_name|location
-$q        = trim($_POST['q'] ?? '');
-$page     = max(1, (int)($_POST['page'] ?? 1));
-$perPage  = 10;
-$offset   = ($page - 1) * $perPage;
+// ---- Search (by name or userID) ----
+$q = isset($_GET['q']) ? trim($_GET['q']) : '';
 
-/* WHERE clause */
-$where  = '1';
+// Build query
+$sql = "
+  SELECT
+    u.userID,
+    u.name          AS user_name,
+    f.farmerID,
+    fa.farmID,
+    fa.area_size,
+    fa.regionID,
+    r.name          AS region_name,
+    r.location      AS region_location
+  FROM users u
+  INNER JOIN farmer f     ON f.userID = u.userID       -- ensures non-admin users only (those who are farmers)
+  LEFT  JOIN farm   fa    ON fa.farmerID = f.farmerID
+  LEFT  JOIN region r     ON r.regionID = fa.regionID
+";
+
 $params = [];
 $types  = '';
-
 if ($q !== '') {
-  switch ($searchBy) {
-    case 'location':
-      $where .= ' AND F.location LIKE ?';
-      $params[] = "%$q%";
-      $types .= 's';
-      break;
-    default: // farm_name
-      $where .= ' AND F.farm_name LIKE ?';
-      $params[] = "%$q%";
-      $types .= 's';
-  }
+    // Filter by user name (LIKE) or exact userID if q is numeric
+    $sql .= " WHERE (u.name LIKE CONCAT('%', ?, '%')";
+    $params[] = $q; $types .= 's';
+
+    if (ctype_digit($q)) {
+        $sql .= " OR u.userID = ?)";
+        $params[] = (int)$q; $types .= 'i';
+    } else {
+        $sql .= ")";
+    }
 }
+$sql .= " ORDER BY u.userID ASC, fa.farmID ASC";
 
-/* Count */
-$sqlCount = "SELECT COUNT(*) AS c
-             FROM FARM F
-             LEFT JOIN USERS U ON F.userID = U.userID
-             WHERE $where";
-$countStmt = $conn->prepare($sqlCount);
-if ($types) $countStmt->bind_param($types, ...$params);
-$countStmt->execute();
-$totalRows = ($countStmt->get_result()->fetch_assoc()['c']) ?? 0;
-$countStmt->close();
-$totalPages = (int)ceil($totalRows / $perPage);
-
-/* Fetch page rows */
-$sql = "SELECT
-          F.farmID, F.farm_name, F.location, F.farm_size, F.years_experience, 
-          U.name AS owner_name
-        FROM FARM F
-        LEFT JOIN USERS U ON F.userID = U.userID
-        WHERE $where
-        ORDER BY F.farmID DESC
-        LIMIT ? OFFSET ?";
 $stmt = $conn->prepare($sql);
-if ($types) {
-  $types2  = $types . 'ii';
-  $params2 = array_merge($params, [$perPage, $offset]);
-  $stmt->bind_param($types2, ...$params2);
-} else {
-  $stmt->bind_param('ii', $perPage, $offset);
-}
+if ($params) { $stmt->bind_param($types, ...$params); }
 $stmt->execute();
-$rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$res = $stmt->get_result();
+
+// Group rows by user
+$users = [];         // userID => ['userID','user_name','farmerID','farms'=>[...]]
+$totalFarms = 0;
+
+while ($row = $res->fetch_assoc()) {
+    $uid = (int)$row['userID'];
+    if (!isset($users[$uid])) {
+        $users[$uid] = [
+            'userID'    => $uid,
+            'user_name' => $row['user_name'],
+            'farmerID'  => (int)$row['farmerID'],
+            'farms'     => []
+        ];
+    }
+    if ($row['farmID'] !== null) {
+        $users[$uid]['farms'][] = [
+            'farmID'          => (int)$row['farmID'],
+            'area_size'       => (float)$row['area_size'],
+            'regionID'        => (int)$row['regionID'],
+            'region_name'     => $row['region_name'],
+            'region_location' => $row['region_location'],
+        ];
+        $totalFarms++;
+    }
+}
 $stmt->close();
 
-/* Avatar URL helper (absolute) */
-function avatarUrl(?string $relPath): string
-{
-  if (!$relPath) return '/ProjectFolder/Dashboard/images/default-avatar.png';
-  // stored like "uploads/xxx.jpg" under /Dashboard/profile/
-  return '/ProjectFolder/Dashboard/profile/' . $relPath;
-}
+$totalUsers = count($users);
+
+function h($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 ?>
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin • Farms</title>
-
-  <link rel="stylesheet" href="/ProjectFolder/admin/adminDashboard/maindash/dashboard.css" />
-  <link rel="stylesheet" href="/ProjectFolder/admin/adminDashboard/farms/farms.css" />
-
-
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <meta charset="utf-8" />
+  <title>Farms — Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="farms.css?v=1" />
 </head>
-
-<body>
-  <div class="admin-wrapper">
-    <?php include $_SERVER['DOCUMENT_ROOT'] . '/ProjectFolder/admin/partials/sidebar.php'; ?>
-
-    <main class="admin-main">
-      <div class="page-head">
-        <h1><i class="fa-solid fa-seedling"></i> Farms</h1>
-
-        <!-- SEARCH (POST) -->
-        <form class="search-bar" method="post" action="farms.php">
-          <select name="by">
-            <option value="farm_name" <?= $searchBy === 'farm_name' ? 'selected' : '' ?>>Farm Name</option>
-            <option value="location" <?= $searchBy === 'location' ? 'selected' : '' ?>>Location</option>
-          </select>
-          <input type="text" name="q" value="<?= htmlspecialchars($q) ?>" placeholder="Search…" />
-          <button class="btn btn-primary" type="submit"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
-          <?php if ($q !== ''): ?>
-            <button class="btn btn-muted" type="submit" name="clear" value="1">Clear</button>
-          <?php endif; ?>
-          <input type="hidden" name="page" value="1">
-        </form>
+<body class="farms-admin">
+  <?php @include __DIR__ . '/../../partials/sidebar.php'; ?>
+  <div class="container">
+    <header class="page-head">
+      <div>
+        <h1>Farms — Admin</h1>
+        <p class="muted">All farmers (non-admin users) and their farms with locations.</p>
       </div>
+      <form class="search" method="get" action="">
+        <input type="text" name="q" value="<?= h($q) ?>" placeholder="Search by name or user ID…" />
+        <button type="submit">Search</button>
+      </form>
+    </header>
 
-      <?php if (!empty($flash)): ?>
-        <div class="flash <?= $flash['type'] === 'ok' ? 'ok' : 'err' ?>">
-          <?= htmlspecialchars($flash['text']) ?>
-        </div>
-      <?php endif; ?>
+    <section class="stats">
+      <div class="stat">
+        <div class="value"><?= number_format($totalUsers) ?></div>
+        <div class="label">Users</div>
+      </div>
+      <div class="stat">
+        <div class="value"><?= number_format($totalFarms) ?></div>
+        <div class="label">Farms</div>
+      </div>
+    </section>
 
-      <div class="table-wrap">
-        <table class="farms-table">
-          <thead>
-            <tr>
-              <th>Farm Name</th>
-              <th>Location</th>
-              <th>Size</th>
-              <th>Years Experience</th>
-              <th>Owner</th>
-              <th style="width:120px;">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php if (empty($rows)): ?>
-              <tr>
-                <td colspan="6">No farms found.</td>
-              </tr>
-              <?php else: foreach ($rows as $r): ?>
-                <tr>
-                  <td><?= htmlspecialchars($r['farm_name'] ?? '—') ?></td>
-                  <td><?= htmlspecialchars($r['location'] ?? '—') ?></td>
-                  <td><?= htmlspecialchars($r['farm_size'] ?? '—') ?></td>
-                  <td><?= htmlspecialchars($r['years_experience'] ?? '—') ?></td>
-                  <td><?= htmlspecialchars($r['owner_name'] ?? '—') ?></td>
-                  <td>
-                    <div class="actions">
-                      <!-- DELETE FORM -->
-                      <form method="post" action="farms.php" onsubmit="return confirm('Delete this farm?');">
-                        <input type="hidden" name="action" value="delete">
-                        <input type="hidden" name="farm_id" value="<?= (int)$r['farmID'] ?>">
-                        <input type="hidden" name="csrf" value="<?= $csrf ?>">
-                        <!-- preserve current filters after delete -->
-                        <input type="hidden" name="by" value="<?= htmlspecialchars($searchBy) ?>">
-                        <input type="hidden" name="q" value="<?= htmlspecialchars($q) ?>">
-                        <input type="hidden" name="page" value="<?= (int)$page ?>">
-                        <button class="btn btn-danger" type="submit" title="Delete">
-                          <i class="fa-solid fa-trash"></i>
-                        </button>
-                      </form>
+    <?php if ($totalUsers === 0): ?>
+      <div class="empty">No matching users.</div>
+    <?php else: ?>
+      <div class="users">
+        <?php foreach ($users as $u): ?>
+          <details class="user-card" open>
+            <summary class="user-summary">
+              <div class="user-meta">
+                <div class="user-name"><?= h($u['user_name'] ?: 'Unnamed') ?></div>
+                <div class="user-ids">User #<?= (int)$u['userID'] ?> · Farmer #<?= (int)$u['farmerID'] ?></div>
+              </div>
+              <div class="chips">
+                <span class="chip"><?= count($u['farms']) ?> farm<?= count($u['farms'])===1?'':'s' ?></span>
+              </div>
+            </summary>
+
+            <?php if (empty($u['farms'])): ?>
+              <div class="panel-body">
+                <p class="muted">No farms recorded for this user.</p>
+              </div>
+            <?php else: ?>
+              <div class="farms-grid">
+                <?php foreach ($u['farms'] as $f): ?>
+                  <div class="farm-card">
+                    <div class="farm-title">Farm #<?= (int)$f['farmID'] ?></div>
+                    <div class="farm-row">
+                      <span class="k">Area</span>
+                      <span class="v"><?= number_format((float)$f['area_size'], 2) ?> acres</span>
                     </div>
-                  </td>
-                </tr>
-            <?php endforeach;
-            endif; ?>
-          </tbody>
-        </table>
+                    <div class="farm-row">
+                      <span class="k">Region</span>
+                      <span class="v">
+                        <?php
+                          $rName = $f['region_name'] ?: ('ID '.$f['regionID']);
+                          $rLoc  = $f['region_location'] ? ' — '.h($f['region_location']) : '';
+                          echo h($rName) . $rLoc;
+                        ?>
+                      </span>
+                    </div>
+                  </div>
+                <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
+          </details>
+        <?php endforeach; ?>
       </div>
-
-      <!-- PAGINATION (POST buttons) -->
-      <?php if ($totalPages > 1): ?>
-        <form class="pagination" method="post" action="farms.php">
-          <input type="hidden" name="by" value="<?= htmlspecialchars($searchBy) ?>">
-          <input type="hidden" name="q" value="<?= htmlspecialchars($q) ?>">
-          <?php for ($p = 1; $p <= $totalPages; $p++): ?>
-            <button class="<?= $p === $page ? 'active' : '' ?>" type="submit" name="page" value="<?= $p ?>">
-              <?= $p ?>
-            </button>
-          <?php endfor; ?>
-        </form>
-      <?php endif; ?>
-
-    </main>
+    <?php endif; ?>
   </div>
 </body>
-
 </html>
