@@ -22,16 +22,14 @@ $totalVisits  = fetch_count($conn, "SELECT COUNT(userID) FROM visite");
 /* ---------- Admin greeting + photo ---------- */
 /* We try session first; if not present, fall back to users.name by userID */
 $adminID    = isset($_SESSION['userID']) ? (int)$_SESSION['userID'] : 0;
-// $adminName  = $_SESSION['admin_name'] ?? $_SESSION['name'] ?? 'Admin';
+$adminName  = $_SESSION['admin_name'] ?? $_SESSION['name'] ?? 'Admin';
 // Fetch greeting + avatar path
-
-
 $adminPhoto = null;
 if ($adminID) {
   $stmt = $conn->prepare("
     SELECT U.name, F.profile_picture
     FROM users U
-    JOIN farmer F ON F.userID = U.userID
+    LEFT JOIN farmer F ON F.userID = U.userID
     WHERE U.userID = ?
   ");
   $stmt->bind_param('i', $adminID);
@@ -40,8 +38,8 @@ if ($adminID) {
   if ($stmt->fetch()) {
     if (!$adminName && $name) $adminName = $name;
     $adminPhoto = $picPath
-      ? '/ProjectFolder/Dashboard/profile/' . $picPath
-      : '/ProjectFolder/Dashboard/images/default-avatar.png';
+      ? '.../ProjectFolder/Dashboard/profile/' . $picPath
+      : '.../ProjectFolder/Dashboard/images/default-avatar.png';
   }
   $stmt->close();
 }
@@ -90,10 +88,10 @@ if (!$adminPhoto) {
 
       <!-- Admin greeting + profile picture -->
       <div class="top-actions">
-       
-         <div class="user-chip">
+        <div class="greet">Welcome back, <strong><?= h($adminName) ?></strong> 👋</div>
+        <div class="user-chip">
           <img src="<?= h($adminPhoto) ?>" alt="Profile picture" />
-          
+          <span><?= h($adminName) ?></span>
         </div>
       </div>
     </div>
@@ -101,7 +99,7 @@ if (!$adminPhoto) {
     <div class="content">
       <!-- KPI cards -->
       <section class="kpi-grid">
-        <a href="users.php" class="kpi-card grad-pink" aria-label="Total users">
+        <a href="../users/users.php" class="kpi-card grad-pink" aria-label="Total users">
           <span class="kpi-icon">👥</span>
           <div class="kpi-meta">
             <p>Total Users</p>
@@ -109,7 +107,7 @@ if (!$adminPhoto) {
           </div>
         </a>
 
-        <a href="farmers.php" class="kpi-card grad-green" aria-label="Total farmers">
+        <a href="../feedback/feedback.php" class="kpi-card grad-green" aria-label="Total farmers">
           <span class="kpi-icon">👨‍🌾</span>
           <div class="kpi-meta">
             <p>Total Farmers</p>
@@ -117,7 +115,7 @@ if (!$adminPhoto) {
           </div>
         </a>
 
-        <a href="farms.php" class="kpi-card grad-orange" aria-label="Total farms">
+        <a href="../farms/farms.php" class="kpi-card grad-orange" aria-label="Total farms">
           <span class="kpi-icon">🌾</span>
           <div class="kpi-meta">
             <p>Total Farms</p>
